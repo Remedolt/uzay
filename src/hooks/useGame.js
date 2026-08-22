@@ -269,6 +269,78 @@ function uid() {
   return nextId;
 }
 
+function fireBossPattern(enemy, player, pushEnemyLaser, pushMissile) {
+  const kind = enemy.attackKind ?? enemy.bossVariant ?? enemy.variant ?? 0;
+  const dx = player.x + player.width / 2 - (enemy.x + enemy.width / 2);
+  switch (kind % 9) {
+    case 1:
+      pushEnemyLaser(enemy, -14, clamp(dx * 0.6, -80, 80));
+      pushEnemyLaser(enemy, 14, clamp(dx * 0.6, -80, 80));
+      pushEnemyLaser(enemy, 0, clamp(dx * 1.3, -180, 180));
+      break;
+    case 2:
+      enemy.burstLeft = 4;
+      pushEnemyLaser(enemy, -18);
+      pushEnemyLaser(enemy, 18);
+      break;
+    case 3:
+      pushEnemyLaser(enemy, -22, -70);
+      pushEnemyLaser(enemy, 0, 0);
+      pushEnemyLaser(enemy, 22, 70);
+      pushMissile(enemy);
+      break;
+    case 4:
+      enemy.burstLeft = 5;
+      pushEnemyLaser(enemy, -10);
+      pushEnemyLaser(enemy, 10);
+      pushMissile(enemy, -16);
+      pushMissile(enemy, 16);
+      break;
+    case 5:
+      pushEnemyLaser(enemy, -24, -110);
+      pushEnemyLaser(enemy, -8, clamp(dx, -160, 160));
+      pushEnemyLaser(enemy, 8, clamp(dx, -160, 160));
+      pushEnemyLaser(enemy, 24, 110);
+      pushMissile(enemy, -20);
+      pushMissile(enemy, 0);
+      pushMissile(enemy, 20);
+      break;
+    case 6: {
+      const t = enemy.phase || 0;
+      pushEnemyLaser(enemy, -10, Math.sin(t) * 170);
+      pushEnemyLaser(enemy, 10, Math.cos(t) * 170);
+      pushEnemyLaser(enemy, 0, Math.sin(t * 1.5) * 90);
+      break;
+    }
+    case 7:
+      pushEnemyLaser(enemy, -30, -150);
+      pushEnemyLaser(enemy, 30, 150);
+      pushEnemyLaser(enemy, -12, 70);
+      pushEnemyLaser(enemy, 12, -70);
+      break;
+    case 8:
+      enemy.burstLeft = 3;
+      for (let s = -2; s <= 2; s += 1) {
+        pushEnemyLaser(enemy, s * 9, s * 52);
+      }
+      break;
+    default: {
+      const pattern = Math.floor((enemy.phase || 0) * 2) % 3;
+      if (pattern === 0) {
+        pushEnemyLaser(enemy, -16);
+        pushEnemyLaser(enemy, 16);
+      } else if (pattern === 1) {
+        enemy.burstLeft = 3;
+        pushEnemyLaser(enemy);
+      } else {
+        pushEnemyLaser(enemy, 0, clamp(dx * 1.15, -160, 160));
+        pushEnemyLaser(enemy, -12, -80);
+        pushEnemyLaser(enemy, 12, 80);
+      }
+    }
+  }
+}
+
 function playerRestY(layout) {
   return layout.height - PLAYER.height - PLAYER.bottom;
 }
@@ -614,6 +686,14 @@ export function useGame(layout) {
         weaveAmp = 20;
       }
 
+      const stage = stageRef.current || 1;
+      const chance = Math.min(
+        0.14,
+        (ENEMY.shieldChance || 0.08) + (stage - 1) * 0.01
+      );
+      const shieldHp =
+        Math.random() < chance ? (Math.random() < 0.25 ? 2 : 1) : 0;
+
       enemiesRef.current.push({
         id: uid(),
         x,
@@ -631,6 +711,7 @@ export function useGame(layout) {
         variant: Math.floor(Math.random() * ENEMY.variantCount),
         burstLeft: 0,
         isBoss: false,
+        shieldHp,
       });
       spawnedRef.current += 1;
       dispatch({
@@ -642,39 +723,65 @@ export function useGame(layout) {
     [layout.width, spawnRaider]
   );
 
-  const spawnBoss = useCallback(
-    (speed) => {
-      const cfg = stageConfig(stageRef.current);
-      const x = Math.max(0, (layout.width - BOSS.width) / 2);
+  const spawnBoss = useCallback(() => {
+    const cfg = stageConfig(stageRef.current);
+    const count = cfg.bossCount || 1;
+    const intervals = [760, 680, 820, 740, 620, 880, 660, 720, 800];
+    for (let slot = 0; slot < count; slot += 1) {
+      const scale = count === 2 && slot === 1 ? 0.88 : 1;
+      const w = Math.round(BOSS.width * scale);
+      const h = Math.round(BOSS.height * scale);
+      const homeX =
+        count === 1
+          ? Math.max(0, (layout.width - w) / 2)
+          : slot === 0
+            ? Math.max(8, layout.width * 0.26 - w / 2)
+            : Math.max(
+                8,
+                Math.min(layout.width - w - 8, layout.width * 0.74 - w / 2)
+              );
+      const attackKind =
+        (cfg.bossVariant + slot * 3 + (cfg.id || 1) + slot) % 9;
+      const hp =
+        count === 2
+          ? Math.max(12, Math.round(cfg.bossHp * 0.7))
+          : cfg.bossHp;
+      const fireMs = Math.round(
+        (intervals[attackKind] || BOSS.fireIntervalMs) * (count === 2 ? 1.12 : 1)
+      );
       enemiesRef.current.push({
         id: uid(),
-        x,
-        y: -BOSS.height,
-        width: BOSS.width,
-        height: BOSS.height,
+        x: homeX,
+        y: -h - slot * 40,
+        width: w,
+        height: h,
         speed: BOSS.enterSpeed,
-        baseX: x,
-        phase: 0,
-        weaveAmp: BOSS.weaveAmp,
-        fireAcc: 400,
-        fireInterval: Math.max(480, cfg.bossHp > 30 ? 620 : BOSS.fireIntervalMs),
-        laserSpeed: BOSS.laserSpeed,
+        homeX,
+        homeY: BOSS.parkY + (slot === 1 ? 22 : 0),
+        phase: slot * 1.7,
+        phaseOff: slot * 2.2,
+        weaveAmp: count === 2 ? 48 : BOSS.weaveAmp,
+        bobAmp: (BOSS.bobAmp || 24) + slot * 6,
+        moveRate: (BOSS.moveRate || 1.5) + slot * 0.22,
+        fireAcc: 280 + slot * 180,
+        fireInterval: fireMs,
+        laserSpeed: BOSS.laserSpeed + slot * 20,
         mode: "boss",
-        variant: cfg.bossVariant ?? 0,
+        variant: ((cfg.bossVariant ?? 0) + slot * 2) % 6,
         bossVariant: cfg.bossVariant ?? 0,
+        attackKind,
         burstLeft: 0,
         isBoss: true,
-        hp: cfg.bossHp,
-        maxHp: cfg.bossHp,
+        hp,
+        maxHp: hp,
         parked: false,
-        missileAcc: 600,
-        missileMs: cfg.missileMs,
-        missileCount: cfg.missileCount,
+        missileAcc: 400 + slot * 280,
+        missileMs: cfg.missileMs + slot * 180,
+        missileCount: Math.max(1, (cfg.missileCount || 1) - (count === 2 ? 1 : 0)),
         missileHoming: cfg.missileHoming,
       });
-    },
-    [layout.width]
-  );
+    }
+  }, [layout.width]);
 
   const spawnPowerUp = useCallback((at, dropChance = POWERUP.dropChance) => {
     if (Math.random() > dropChance) return;
@@ -1002,20 +1109,31 @@ export function useGame(layout) {
 
       for (const enemy of enemies) {
         if (enemy.isBoss) {
+          const homeY = enemy.homeY != null ? enemy.homeY : BOSS.parkY;
           if (!enemy.parked) {
             enemy.y += enemy.speed * dt;
-            if (enemy.y >= BOSS.parkY) {
-              enemy.y = BOSS.parkY;
+            if (enemy.y >= homeY) {
+              enemy.y = homeY;
               enemy.parked = true;
             }
           } else {
-            enemy.phase += dt * 1.6;
-            const weave = Math.sin(enemy.phase) * enemy.weaveAmp;
+            enemy.phase += dt * (enemy.moveRate || BOSS.moveRate || 1.55);
+            const weave = Math.sin(enemy.phase) * (enemy.weaveAmp || 70);
+            const bob =
+              Math.sin(enemy.phase * 0.9 + (enemy.phaseOff || 0)) *
+              (enemy.bobAmp || BOSS.bobAmp || 24);
+            const drift = Math.sin(enemy.phase * 0.33) * 16;
+            const homeX =
+              enemy.homeX != null
+                ? enemy.homeX
+                : layout.width / 2 - enemy.width / 2;
             enemy.x = clamp(
-              layout.width / 2 - enemy.width / 2 + weave,
+              homeX + weave + drift,
               0,
               Math.max(0, layout.width - enemy.width)
             );
+            const maxY = Math.min(layout.height * 0.36, homeY + 52);
+            enemy.y = clamp(homeY + bob, 24, maxY);
           }
         } else if (enemy.isRaider) {
           enemy.x += (enemy.vx || RAIDER.speed) * dt;
@@ -1052,54 +1170,7 @@ export function useGame(layout) {
           } else {
           enemy.fireAcc = 0;
           if (enemy.mode === "boss") {
-            const kind = enemy.bossVariant ?? enemy.variant ?? 0;
-            if (kind === 1) {
-              const dx =
-                player.x + player.width / 2 - (enemy.x + enemy.width / 2);
-              pushEnemyLaser(enemy, -14, clamp(dx * 0.6, -80, 80));
-              pushEnemyLaser(enemy, 14, clamp(dx * 0.6, -80, 80));
-              pushEnemyLaser(enemy, 0, clamp(dx * 1.3, -180, 180));
-            } else if (kind === 2) {
-              enemy.burstLeft = 4;
-              pushEnemyLaser(enemy, -18);
-              pushEnemyLaser(enemy, 18);
-            } else if (kind === 3) {
-              pushEnemyLaser(enemy, -22, -70);
-              pushEnemyLaser(enemy, 0, 0);
-              pushEnemyLaser(enemy, 22, 70);
-              pushMissile(enemy);
-            } else if (kind === 4) {
-              enemy.burstLeft = 5;
-              pushEnemyLaser(enemy, -10);
-              pushEnemyLaser(enemy, 10);
-              pushMissile(enemy, -16);
-              pushMissile(enemy, 16);
-            } else if (kind === 5) {
-              const dx =
-                player.x + player.width / 2 - (enemy.x + enemy.width / 2);
-              pushEnemyLaser(enemy, -24, -110);
-              pushEnemyLaser(enemy, -8, clamp(dx, -160, 160));
-              pushEnemyLaser(enemy, 8, clamp(dx, -160, 160));
-              pushEnemyLaser(enemy, 24, 110);
-              pushMissile(enemy, -20);
-              pushMissile(enemy, 0);
-              pushMissile(enemy, 20);
-            } else {
-              const pattern = Math.floor(enemy.phase * 2) % 3;
-              if (pattern === 0) {
-                pushEnemyLaser(enemy, -16);
-                pushEnemyLaser(enemy, 16);
-              } else if (pattern === 1) {
-                enemy.burstLeft = 3;
-                pushEnemyLaser(enemy);
-              } else {
-                const dx =
-                  player.x + player.width / 2 - (enemy.x + enemy.width / 2);
-                pushEnemyLaser(enemy, 0, clamp(dx * 1.15, -160, 160));
-                pushEnemyLaser(enemy, -12, -80);
-                pushEnemyLaser(enemy, 12, 80);
-              }
-            }
+            fireBossPattern(enemy, player, pushEnemyLaser, pushMissile);
           } else if (enemy.mode === "burst") {
             enemy.burstLeft = 2;
             pushEnemyLaser(enemy);
@@ -1229,7 +1300,11 @@ export function useGame(layout) {
       let destroyedCount = 0;
       let bossKilled = false;
 
-      const killEnemy = (enemy, dmg) => {
+      const killEnemy = (enemy, dmg, pierce = false) => {
+        if (!pierce && enemy.shieldHp > 0) {
+          enemy.shieldHp -= 1;
+          return false;
+        }
         if (enemy.isBoss) {
           enemy.hp = (enemy.hp || 1) - dmg;
           if (enemy.hp > 0) return false;
@@ -1352,19 +1427,12 @@ export function useGame(layout) {
           }
         }
         if (!dead && empThisTick) {
-          if (enemy.isBoss) {
-            if (killEnemy(enemy, ULTIMATE.empBossDamage)) dead = true;
-          } else if (enemy.isRaider) {
+          if (killEnemy(
+            enemy,
+            enemy.isBoss ? ULTIMATE.empBossDamage : 99,
+            true
+          ))
             dead = true;
-            destroyedCount += 1;
-            gained += Math.round(POINTS_PER_RAIDER * scoreMul);
-            spawnPowerUp(enemy, 0.4);
-          } else {
-            dead = true;
-            destroyedCount += 1;
-            gained += Math.round(POINTS_PER_ENEMY * scoreMul);
-            spawnPowerUp(enemy, ENEMY.dropChance);
-          }
         }
         if (dead) continue;
 
@@ -1480,15 +1548,18 @@ export function useGame(layout) {
         dispatch({
           type: "phase",
           phase: "boss",
-          banner: cfg.bossName || "PATRON",
-          bannerSub: `${cfg.name} patronu`,
+          banner: cfg.bossCount > 1 ? "ÇİFTE PATRON" : cfg.bossName || "PATRON",
+          bannerSub:
+            cfg.bossCount > 1
+              ? `${cfg.bossName} & ${cfg.bossNameB || "Gölge"}`
+              : `${cfg.name} patronu`,
         });
-        spawnBoss(speed);
+        spawnBoss();
         playRef.current("levelup");
         setStageMusicRef.current(stage, true);
       }
 
-      if (bossKilled) {
+      if (bossKilled && !remainingEnemies.some((e) => e.isBoss)) {
         phaseRef.current = "clear";
         clearAccRef.current = 0;
         bannerAccRef.current = 2000;

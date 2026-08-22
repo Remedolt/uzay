@@ -34,6 +34,11 @@ export function HowToPlay({ visible, onClose }) {
             <Text style={styles.val}>{row.val}</Text>
           </View>
         ))}
+        <Text style={styles.sub}>Düşmanlar</Text>
+        <Text style={styles.hint}>
+          Ara sıra mavi kalkanlı gemi çıkar; kalkan bitmeden gemi düşmez.
+          Patronlar havada gezer. 10. aşamadan itibaren iki patron birden gelir.
+        </Text>
         <Text style={styles.sub}>Düşenler</Text>
         <View style={styles.drops}>
           {DROPS.map((d) => (
@@ -106,6 +111,12 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     marginTop: 8,
     marginBottom: 6,
+  },
+  hint: {
+    color: "#94a3b8",
+    fontSize: 12,
+    lineHeight: 17,
+    marginBottom: 8,
   },
   drops: {
     flexDirection: "row",

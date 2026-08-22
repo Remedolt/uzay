@@ -25,7 +25,6 @@ export function Meteor({
       ]}
       pointerEvents="none"
     >
-      <View style={styles.glow} />
       <Image source={img} style={styles.image} resizeMode="contain" />
     </View>
   );
@@ -34,12 +33,6 @@ export function Meteor({
 const styles = StyleSheet.create({
   wrap: {
     position: "absolute",
-  },
-  glow: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(249, 115, 22, 0.18)",
-    borderRadius: 999,
-    transform: [{ scale: 0.72 }],
   },
   image: {
     width: "100%",

@@ -55,8 +55,8 @@ export const WEAPON = {
 };
 
 export const METEOR = {
-  size: 86,
-  sizeJitter: 18,
+  size: 74,
+  sizeJitter: 14,
   baseSpeed: 72,
   maxSpeed: 220,
   /** Daha seyrek meteor */
@@ -80,6 +80,8 @@ export const ENEMY = {
   dropChance: 0.1,
   variantCount: 8,
   groupGapMs: 340,
+  /** Nadir kişisel kalkan */
+  shieldChance: 0.08,
 };
 
 export const RAIDER = {
@@ -95,9 +97,11 @@ export const RAIDER = {
 export const BOSS = {
   width: 118,
   height: 118,
-  parkY: 64,
+  parkY: 56,
   enterSpeed: 78,
-  weaveAmp: 96,
+  weaveAmp: 88,
+  bobAmp: 26,
+  moveRate: 1.55,
   fireIntervalMs: 780,
   laserSpeed: 320,
 };
@@ -226,6 +230,8 @@ export function stageConfig(stage) {
     missileCount: Math.min(4, base.missileCount + Math.floor(loop / 2)),
     missileHoming: base.missileHoming + loop * 20,
     raiderChance: Math.min(0.18, (base.raiderChance || 0) + loop * 0.03),
+    bossCount: (stage || 1) >= 10 ? 2 : 1,
+    bossNameB: STAGES[(idx + 2) % STAGES.length].bossName,
   };
 }
 

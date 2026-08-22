@@ -58,6 +58,7 @@ export function EnemyShip({
   vx = 0,
   hp,
   maxHp,
+  shieldHp = 0,
 }) {
   if (isRaider) {
     return (
@@ -84,6 +85,7 @@ export function EnemyShip({
       style={[styles.wrap, { left: x, top: y, width, height }]}
       pointerEvents="none"
     >
+      {shieldHp > 0 ? <View style={styles.shieldRing} /> : null}
       {isBoss ? (
         <View style={styles.hpTrack}>
           <View style={[styles.hpFill, { width: `${ratio * 100}%` }]} />
@@ -118,6 +120,15 @@ const styles = StyleSheet.create({
   },
   image: {
     backgroundColor: "transparent",
+  },
+  shieldRing: {
+    position: "absolute",
+    width: "124%",
+    height: "124%",
+    borderRadius: 999,
+    borderWidth: 2,
+    borderColor: "rgba(125, 211, 252, 0.9)",
+    backgroundColor: "rgba(56, 189, 248, 0.16)",
   },
   hpTrack: {
     position: "absolute",
