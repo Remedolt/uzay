@@ -318,7 +318,7 @@ export function useGame(layout) {
   const empPendingRef = useRef(false);
   const empBurstRef = useRef({ t: 0, x: 0, y: 0 });
   const bossBurstRef = useRef({ t: 0, x: 0, y: 0 });
-  const shakeRef = useRef({ t: 0, x: 0, y: 0 });
+  const shakeRef = useRef({ t: 0, x: 0, y: 0, power: 0 });
   const droneCountRef = useRef(0);
   const rocketAmmoRef = useRef(0);
   const rocketGateRef = useRef(0);
@@ -376,7 +376,7 @@ export function useGame(layout) {
     empPendingRef.current = false;
     empBurstRef.current = { t: 0, x: 0, y: 0 };
     bossBurstRef.current = { t: 0, x: 0, y: 0 };
-    shakeRef.current = { t: 0, x: 0, y: 0 };
+    shakeRef.current = { t: 0, x: 0, y: 0, power: 0 };
     droneCountRef.current = 0;
     rocketAmmoRef.current = 0;
     if (layout.width) {
@@ -728,6 +728,9 @@ export function useGame(layout) {
       dispatch({ type: "shieldBreak" });
       playRef.current("hit");
       iFrameRef.current = 700;
+      const s = shakeRef.current;
+      s.t = Math.max(s.t, 0.18);
+      s.power = Math.max(s.power || 0, 22);
       return "absorb";
     }
     return "damage";
@@ -781,12 +784,13 @@ export function useGame(layout) {
       }
       if (shakeRef.current.t > 0) {
         shakeRef.current.t -= dt;
-        const mag = Math.max(0, shakeRef.current.t) * 42;
+        const mag = Math.max(0, shakeRef.current.t) * (shakeRef.current.power || 42);
         shakeRef.current.x = (Math.random() - 0.5) * mag;
         shakeRef.current.y = (Math.random() - 0.5) * mag;
         if (shakeRef.current.t <= 0) {
           shakeRef.current.x = 0;
           shakeRef.current.y = 0;
+          shakeRef.current.power = 0;
         }
       }
 
@@ -1212,6 +1216,7 @@ export function useGame(layout) {
           y: player.y + player.height / 2,
         };
         shakeRef.current.t = 0.42;
+        shakeRef.current.power = Math.max(shakeRef.current.power || 0, 42);
         playRef.current("explode");
         enemyLasers.length = 0;
         for (let i = missiles.length - 1; i >= 0; i -= 1) {
@@ -1241,7 +1246,8 @@ export function useGame(layout) {
             x: enemy.x + enemy.width / 2,
             y: enemy.y + enemy.height / 2,
           };
-          shakeRef.current.t = Math.max(shakeRef.current.t, 0.3);
+              shakeRef.current.t = Math.max(shakeRef.current.t, 0.3);
+              shakeRef.current.power = Math.max(shakeRef.current.power || 0, 36);
           return true;
         }
         if (enemy.isRaider) {
@@ -1526,6 +1532,9 @@ export function useGame(layout) {
           endGame(score + gained);
           return;
         }
+        const s = shakeRef.current;
+        s.t = Math.max(s.t, 0.24);
+        s.power = Math.max(s.power || 0, 28);
         playRef.current("hit");
         dispatch({ type: "hit", lives });
       }

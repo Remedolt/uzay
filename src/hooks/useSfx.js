@@ -20,7 +20,7 @@ const MUSIC_TRACKS = [
   require("../../assets/sfx/music-6.wav"),
 ];
 
-const MUSIC_VOLUME = 0.12;
+const MUSIC_VOLUME = 0.16;
 
 function trackIndex(stage) {
   const n = MUSIC_TRACKS.length;
@@ -126,7 +126,7 @@ export function useSfx() {
     const idx = trackIndex(stage);
     const next = tracks[idx];
     const prev = musicRef.current;
-    const rate = isBoss ? 1.12 : 1;
+    const vol = isBoss ? MUSIC_VOLUME * 1.08 : MUSIC_VOLUME;
 
     try {
       if (prev && prev !== next) {
@@ -141,9 +141,9 @@ export function useSfx() {
       indexRef.current = idx;
       const status = await next.getStatusAsync();
       if (!status.isLoaded) return;
-      await next.setVolumeAsync(MUSIC_VOLUME);
+      await next.setVolumeAsync(vol);
       try {
-        await next.setRateAsync(rate, !isBoss);
+        await next.setRateAsync(1, true);
       } catch {
         // web rate desteği yoksa devam
       }

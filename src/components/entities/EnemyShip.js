@@ -1,15 +1,6 @@
 import { Image, Platform, StyleSheet, View } from "react-native";
 import { BOSS_SHIP_IMAGES, ENEMY_SHIP_IMAGES } from "../../assets";
 
-const BOSS_GLOW = [
-  "#f87171",
-  "#22d3ee",
-  "#34d399",
-  "#fbbf24",
-  "#c084fc",
-  "#e2e8f0",
-];
-
 function RaiderShip({
   x,
   y,
@@ -85,7 +76,6 @@ export function EnemyShip({
 
   const images = isBoss ? BOSS_SHIP_IMAGES : ENEMY_SHIP_IMAGES;
   const img = images[variant % images.length] || images[0];
-  const glow = BOSS_GLOW[variant % BOSS_GLOW.length];
   const ratio =
     isBoss && maxHp > 0 ? Math.max(0, Math.min(1, (hp ?? maxHp) / maxHp)) : 0;
 
@@ -99,14 +89,6 @@ export function EnemyShip({
           <View style={[styles.hpFill, { width: `${ratio * 100}%` }]} />
         </View>
       ) : null}
-      {isBoss ? (
-        <View
-          style={[
-            styles.halo,
-            { backgroundColor: glow, shadowColor: glow },
-          ]}
-        />
-      ) : null}
       <Image
         source={img}
         defaultSource={images[0]}
@@ -114,8 +96,10 @@ export function EnemyShip({
           styles.image,
           { width, height },
           isBoss && Platform.OS === "web"
-            ? { filter: `drop-shadow(0 0 2px ${glow})` }
-            : null,
+            ? { filter: "brightness(0.84) saturate(0.42) contrast(0.96)" }
+            : isBoss
+              ? { opacity: 0.88 }
+              : null,
         ]}
         resizeMode="contain"
       />
@@ -134,16 +118,6 @@ const styles = StyleSheet.create({
   },
   image: {
     backgroundColor: "transparent",
-  },
-  halo: {
-    position: "absolute",
-    width: "28%",
-    height: "28%",
-    borderRadius: 16,
-    opacity: 0.08,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.28,
-    shadowRadius: 4,
   },
   hpTrack: {
     position: "absolute",
