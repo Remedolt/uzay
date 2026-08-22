@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Platform, StyleSheet, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { SCREEN } from "../constants/game";
@@ -10,6 +10,7 @@ import { EnemyShip } from "./entities/EnemyShip";
 import { EnemyLaser } from "./entities/EnemyLaser";
 import { Missile } from "./entities/Missile";
 import { PowerUp } from "./entities/PowerUp";
+import { Drone } from "./entities/Drone";
 import { EmpBurst } from "./fx/EmpBurst";
 import { SpaceBackground } from "./fx/SpaceBackground";
 import { StageBanner } from "./fx/StageBanner";
@@ -17,13 +18,33 @@ import { Hud } from "./hud/Hud";
 import { UltimateButton } from "./hud/UltimateButton";
 import { StartScreen } from "./screens/StartScreen";
 import { GameOverScreen } from "./screens/GameOverScreen";
+import { PauseScreen } from "./screens/PauseScreen";
 
 export function Game() {
   const [layout, setLayout] = useState({ width: 0, height: 0 });
   const arenaRef = useRef(null);
   const game = useGame(layout);
   const playing = game.hud.screen === SCREEN.PLAYING;
+  const paused = playing && game.hud.paused;
   const shake = game.shake || { x: 0, y: 0 };
+
+  useEffect(() => {
+    if (Platform.OS !== "web") return undefined;
+    const onKey = (e) => {
+      if (e.code === "Escape") {
+        e.preventDefault();
+        game.togglePause();
+        return;
+      }
+      if (e.code === "KeyQ" || e.key === "q" || e.key === "Q") {
+        if (e.repeat) return;
+        e.preventDefault();
+        game.fireUltimate();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [game]);
 
   const moveFromPointer = useCallback(
     (localX, localY, fromTouch) => {
@@ -108,6 +129,9 @@ export function Game() {
                 shielded={game.hud.shielded}
                 shieldHp={game.hud.shieldHp}
                 weaponLevel={game.hud.weaponLevel}
+                combo={game.hud.combo}
+                comboMul={game.hud.comboMul}
+                droneCount={game.hud.droneCount}
               />
               <StageBanner
                 title={game.hud.banner}
@@ -131,6 +155,9 @@ export function Game() {
               {game.powerups.map((drop) => (
                 <PowerUp key={drop.id} {...drop} />
               ))}
+              {(game.drones || []).map((drone) => (
+                <Drone key={drone.id} {...drone} />
+              ))}
               <Player {...game.player} />
               <EmpBurst burst={game.empBurst} />
             </>
@@ -144,6 +171,8 @@ export function Game() {
           onPress={game.fireUltimate}
         />
       ) : null}
+
+      {paused ? <PauseScreen onResume={game.resumeGame} /> : null}
 
       {game.hud.screen === SCREEN.START && (
         <StartScreen
@@ -178,11 +207,12 @@ const styles = StyleSheet.create({
     minHeight: Platform.OS === "web" ? "100vh" : undefined,
     backgroundColor: "#030712",
     overflow: "hidden",
-    cursor: Platform.OS === "web" ? "crosshair" : undefined,
+    cursor: Platform.OS === "web" ? "default" : undefined,
   },
   playfield: {
     flex: 1,
     width: "100%",
     height: "100%",
+    cursor: Platform.OS === "web" ? "none" : undefined,
   },
 });

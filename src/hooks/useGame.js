@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import {
   BOSS,
+  COMBO,
   DEFAULT_PLAYER_NAME,
+  DRONE,
   ENEMY,
   ENEMY_MODES,
   INITIAL_LIVES,
@@ -19,6 +21,7 @@ import {
   SHIPS,
   ULTIMATE,
   WEAPON,
+  comboMultiplier,
   getShip,
   stageConfig,
 } from "../constants/game";
@@ -59,14 +62,19 @@ const initialHud = {
   spawned: 0,
   quota: stageConfig(1).enemyQuota,
   ultimate: 0,
+  paused: false,
+  combo: 0,
+  comboMul: 1,
+  droneCount: 0,
 };
 
 function pickPowerUpType() {
   const r = Math.random();
-  const { life, shield } = POWERUP.weights;
+  const { life, shield, weapon } = POWERUP.weights;
   if (r < life) return POWERUP_TYPE.LIFE;
   if (r < life + shield) return POWERUP_TYPE.SHIELD;
-  return POWERUP_TYPE.WEAPON;
+  if (r < life + shield + (weapon || 0)) return POWERUP_TYPE.WEAPON;
+  return POWERUP_TYPE.DRONE;
 }
 
 function hudReducer(state, action) {
@@ -96,6 +104,10 @@ function hudReducer(state, action) {
         spawned: 0,
         quota: stageConfig(1).enemyQuota,
         ultimate: 0,
+        paused: false,
+        combo: 0,
+        comboMul: 1,
+        droneCount: 0,
       };
     case "score":
       return {
@@ -103,6 +115,8 @@ function hudReducer(state, action) {
         score: action.score,
         ultimate:
           action.ultimate == null ? state.ultimate : action.ultimate,
+        combo: action.combo == null ? state.combo : action.combo,
+        comboMul: action.comboMul == null ? state.comboMul : action.comboMul,
       };
     case "ultimate":
       return {
@@ -147,6 +161,8 @@ function hudReducer(state, action) {
         shielded: false,
         shieldHp: 0,
         weaponLevel: 0,
+        combo: 0,
+        comboMul: 1,
       };
     case "shieldBreak": {
       const hp = Math.max(0, (state.shieldHp || 1) - 1);
@@ -160,10 +176,22 @@ function hudReducer(state, action) {
         shielded: true,
         shieldHp: action.hits || 1,
       };
-    case "grantWeapon":
+    case "grantWeapon": {
+      if (state.weaponLevel >= WEAPON.maxLevel) return state;
       return {
         ...state,
-        weaponLevel: Math.min(WEAPON.maxLevel, state.weaponLevel + 1),
+        weaponLevel: state.weaponLevel + 1,
+      };
+    }
+    case "grantDrone":
+      return {
+        ...state,
+        droneCount: Math.min(DRONE.max, (state.droneCount || 0) + 1),
+      };
+    case "setDrones":
+      return {
+        ...state,
+        droneCount: Math.max(0, Math.min(DRONE.max, action.droneCount || 0)),
       };
     case "gameOver":
       return {
@@ -179,6 +207,10 @@ function hudReducer(state, action) {
         level: action.stage || state.stage || 1,
         stage: action.stage || state.stage || 1,
         ultimate: 0,
+        paused: false,
+        combo: 0,
+        comboMul: 1,
+        droneCount: 0,
       };
     case "scoreSaved":
       return {
@@ -204,7 +236,21 @@ function hudReducer(state, action) {
         spawned: 0,
         quota: stageConfig(1).enemyQuota,
         ultimate: 0,
+        combo: 0,
+        comboMul: 1,
+        droneCount: 0,
+        paused: false,
       };
+    case "combo":
+      return {
+        ...state,
+        combo: action.combo || 0,
+        comboMul: action.comboMul || 1,
+      };
+    case "pause":
+      return { ...state, paused: true };
+    case "resume":
+      return { ...state, paused: false };
     default:
       return state;
   }
@@ -248,6 +294,7 @@ export function useGame(layout) {
   const enemyLasersRef = useRef([]);
   const missilesRef = useRef([]);
   const powerupsRef = useRef([]);
+  const dronesRef = useRef([]);
   const fireAccRef = useRef(0);
   const spawnAccRef = useRef(0);
   const enemyAccRef = useRef(0);
@@ -264,6 +311,9 @@ export function useGame(layout) {
   const empPendingRef = useRef(false);
   const empBurstRef = useRef({ t: 0, x: 0, y: 0 });
   const shakeRef = useRef({ t: 0, x: 0, y: 0 });
+  const comboRef = useRef(0);
+  const comboTimerRef = useRef(0);
+  const droneCountRef = useRef(0);
   const [, setRenderTick] = useReducer((n) => n + 1, 0);
 
   useEffect(() => {
@@ -302,6 +352,7 @@ export function useGame(layout) {
     enemyLasersRef.current = [];
     missilesRef.current = [];
     powerupsRef.current = [];
+    dronesRef.current = [];
     fireAccRef.current = 0;
     spawnAccRef.current = 0;
     enemyAccRef.current = 0;
@@ -317,6 +368,9 @@ export function useGame(layout) {
     empPendingRef.current = false;
     empBurstRef.current = { t: 0, x: 0, y: 0 };
     shakeRef.current = { t: 0, x: 0, y: 0 };
+    comboRef.current = 0;
+    comboTimerRef.current = 0;
+    droneCountRef.current = 0;
     if (layout.width) {
       const x = (layout.width - PLAYER.width) / 2;
       playerRef.current.x = x;
@@ -350,6 +404,7 @@ export function useGame(layout) {
 
   const movePlayerTo = useCallback(
     (localX, localY, fromTouch = false) => {
+      if (hudRef.current.paused) return;
       const half = PLAYER.width / 2;
       playerRef.current.targetX = clamp(
         localX - half,
@@ -370,34 +425,53 @@ export function useGame(layout) {
   );
 
   const fireUltimate = useCallback(() => {
+    if (hudRef.current.paused) return;
+    if (hudRef.current.screen !== SCREEN.PLAYING) return;
     if (ultimateRef.current < 1) return;
     empPendingRef.current = true;
   }, []);
 
+  const togglePause = useCallback(() => {
+    if (hudRef.current.screen !== SCREEN.PLAYING) return;
+    dispatch({ type: hudRef.current.paused ? "resume" : "pause" });
+  }, []);
+
+  const resumeGame = useCallback(() => {
+    dispatch({ type: "resume" });
+  }, []);
+
   const spawnLaser = useCallback(() => {
+    if (hudRef.current.paused) return;
     const p = playerRef.current;
     const level = hudRef.current.weaponLevel || 0;
     const cx = p.x + p.width / 2 - LASER.width / 2;
     const y = p.y - LASER.height;
     const shipIdNow = shipIdRef.current;
     const ship = getShip(shipIdNow);
-    const mk = (x) => ({
+    const mk = (x, extra = {}) => ({
       id: uid(),
       x,
       y,
-      width: LASER.width,
-      height: LASER.height,
+      width: extra.width || LASER.width,
+      height: extra.height || LASER.height,
       shipId: shipIdNow,
-      speed: LASER.speed * (ship.laserSpeedMul || 1),
-      damage: ship.damage || 1,
+      speed: LASER.speed * (ship.laserSpeedMul || 1) * (extra.speedMul || 1),
+      damage: extra.damage || ship.damage || 1,
     });
 
     if (level <= 0) {
       lasersRef.current.push(mk(cx));
     } else if (level === 1) {
       lasersRef.current.push(mk(cx - 12), mk(cx + 12));
-    } else {
+    } else if (level === 2) {
       lasersRef.current.push(mk(cx - 16), mk(cx), mk(cx + 16));
+    } else {
+      lasersRef.current.push(
+        mk(cx - 24),
+        mk(cx - 8),
+        mk(cx + 8),
+        mk(cx + 24)
+      );
     }
 
     laserSfxGateRef.current += 1;
@@ -647,6 +721,71 @@ export function useGame(layout) {
       if (fireAccRef.current >= fireMs) {
         fireAccRef.current = 0;
         spawnLaser();
+      }
+
+      const spawnDrone = () => {
+        if (dronesRef.current.length >= DRONE.max) return false;
+        const used = new Set(dronesRef.current.map((d) => d.side));
+        const side = used.has(-1) ? 1 : -1;
+        const p = playerRef.current;
+        dronesRef.current.push({
+          id: uid(),
+          x: p.x + p.width / 2 - DRONE.size / 2 + side * DRONE.offsetX,
+          y: p.y + DRONE.offsetY,
+          width: DRONE.size,
+          height: DRONE.size,
+          side,
+          fireAcc: 160,
+          shipId: shipIdRef.current,
+        });
+        droneCountRef.current = dronesRef.current.length;
+        return true;
+      };
+
+      const hitDrone = (box) => {
+        const drones = dronesRef.current;
+        for (let i = drones.length - 1; i >= 0; i -= 1) {
+          if (!aabbIntersects(box, drones[i])) continue;
+          drones.splice(i, 1);
+          droneCountRef.current = drones.length;
+          return true;
+        }
+        return false;
+      };
+
+      for (let i = 0; i < dronesRef.current.length; i += 1) {
+        const drone = dronesRef.current[i];
+        const side = drone.side || (i % 2 === 0 ? -1 : 1);
+        drone.side = side;
+        drone.shipId = shipIdRef.current;
+        drone.width = DRONE.size;
+        drone.height = DRONE.size;
+        const bob = Math.sin(scrollRef.current * 0.045 + i * 1.7) * DRONE.bob;
+        const tx =
+          playerRef.current.x +
+          playerRef.current.width / 2 -
+          DRONE.size / 2 +
+          side * DRONE.offsetX;
+        const ty = playerRef.current.y + DRONE.offsetY + bob;
+        const follow = Math.min(1, 14 * dt);
+        drone.x += (tx - drone.x) * follow;
+        drone.y += (ty - drone.y) * follow;
+        drone.x = clamp(drone.x, 0, Math.max(0, layout.width - DRONE.size));
+        drone.fireAcc = (drone.fireAcc || 0) + dt * 1000;
+        if (drone.fireAcc >= DRONE.fireIntervalMs) {
+          drone.fireAcc = 0;
+          lasersRef.current.push({
+            id: uid(),
+            x: drone.x + drone.width / 2 - DRONE.laserW / 2,
+            y: drone.y - DRONE.laserH,
+            width: DRONE.laserW,
+            height: DRONE.laserH,
+            shipId: shipIdRef.current,
+            speed: LASER.speed * (ship.laserSpeedMul || 1) * 0.95,
+            damage: Math.max(1, ship.damage || 1),
+            fromDrone: true,
+          });
+        }
       }
 
       spawnAccRef.current += dt * 1000;
@@ -941,6 +1080,7 @@ export function useGame(layout) {
       let gained = 0;
       let livesLost = 0;
       let destroyedCount = 0;
+      let comboHits = 0;
       let bossKilled = false;
 
       const remainingMeteors = [];
@@ -958,6 +1098,7 @@ export function useGame(layout) {
             lasers.splice(i, 1);
             destroyed = true;
             destroyedCount += 1;
+            comboHits += 1;
             gained += Math.round(POINTS_PER_METEOR * scoreMul);
             spawnPowerUp(meteor, POWERUP.dropChance);
             ultimateRef.current = Math.min(
@@ -971,11 +1112,16 @@ export function useGame(layout) {
 
         if (empThisTick) {
           destroyedCount += 1;
+          comboHits += 1;
           gained += Math.round(POINTS_PER_METEOR * scoreMul);
           continue;
         }
 
         if (isOffScreenBottom(meteor, layout.height)) continue;
+        if (hitDrone(hitbox)) {
+          playRef.current("explode");
+          continue;
+        }
         const result = resolveHazardHit(aabbIntersects(hitbox, player));
         if (result === "damage") livesLost += 1;
         else remainingMeteors.push(meteor);
@@ -988,6 +1134,7 @@ export function useGame(layout) {
           if (!aabbIntersects(lasers[i], enemy)) continue;
           const shot = lasers[i];
           lasers.splice(i, 1);
+          comboHits += 1;
           if (enemy.isBoss) {
             enemy.hp = (enemy.hp || 1) - (shot.damage || 1);
             if (enemy.hp <= 0) {
@@ -1020,12 +1167,14 @@ export function useGame(layout) {
               dead = true;
               bossKilled = true;
               destroyedCount += 1;
+              comboHits += 1;
               gained += Math.round(POINTS_PER_BOSS * scoreMul);
               spawnPowerUp(enemy, 1);
             }
           } else {
             dead = true;
             destroyedCount += 1;
+            comboHits += 1;
             gained += Math.round(POINTS_PER_ENEMY * scoreMul);
             spawnPowerUp(enemy, ENEMY.dropChance);
           }
@@ -1033,6 +1182,7 @@ export function useGame(layout) {
         if (dead) continue;
 
         if (!enemy.isBoss && isOffScreenBottom(enemy, layout.height)) continue;
+        if (hitDrone(enemy)) playRef.current("explode");
         const result = resolveHazardHit(aabbIntersects(enemy, player));
         if (result === "damage") livesLost += 1;
         remainingEnemies.push(enemy);
@@ -1042,6 +1192,10 @@ export function useGame(layout) {
       for (const el of enemyLasers) {
         if (isOffScreenBottom(el, layout.height)) continue;
         if (el.x + el.width < 0 || el.x > layout.width) continue;
+        if (hitDrone(el)) {
+          playRef.current("explode");
+          continue;
+        }
         const result = resolveHazardHit(aabbIntersects(el, player));
         if (result === "damage") {
           livesLost += 1;
@@ -1067,6 +1221,10 @@ export function useGame(layout) {
         if (missile.y + missile.height < -48) continue;
         if (missile.x + missile.width < -48 || missile.x > layout.width + 48)
           continue;
+        if (hitDrone(missile)) {
+          playRef.current("explode");
+          continue;
+        }
         const result = resolveHazardHit(aabbIntersects(missile, player));
         if (result === "damage") {
           livesLost += 1;
@@ -1087,18 +1245,41 @@ export function useGame(layout) {
               type: "grantShield",
               hits: getShip(shipIdRef.current).shieldMax || 1,
             });
-          else dispatch({ type: "grantWeapon" });
+          else if (drop.type === POWERUP_TYPE.DRONE) spawnDrone();
+          else {
+            const atMax =
+              (hudRef.current.weaponLevel || 0) >= WEAPON.maxLevel;
+            dispatch({ type: "grantWeapon" });
+            if (atMax) spawnDrone();
+          }
           continue;
         }
         remainingDrops.push(drop);
       }
 
+      const playerMissed = lasers.some(
+        (laser) => !laser.fromDrone && isOffScreenTop(laser)
+      );
       lasersRef.current = lasers.filter((laser) => !isOffScreenTop(laser));
       meteorsRef.current = remainingMeteors;
       enemiesRef.current = remainingEnemies;
       enemyLasersRef.current = remainingEnemyLasers;
       missilesRef.current = remainingMissiles;
       powerupsRef.current = remainingDrops;
+
+      const prevCombo = comboRef.current;
+      if (comboHits > 0) {
+        comboRef.current += comboHits;
+        comboTimerRef.current = COMBO.timeoutMs;
+      } else if (comboRef.current > 0) {
+        comboTimerRef.current -= dt * 1000;
+        if (playerMissed || comboTimerRef.current <= 0) {
+          comboRef.current = 0;
+          comboTimerRef.current = 0;
+        }
+      }
+      const comboMulNow = comboMultiplier(comboRef.current);
+      if (gained > 0) gained = Math.round(gained * comboMulNow);
 
       if (
         phase === "wave" &&
@@ -1135,11 +1316,13 @@ export function useGame(layout) {
 
       if (destroyedCount > 0) playRef.current("explode");
 
-      if (gained > 0) {
+      if (gained > 0 || comboRef.current !== prevCombo) {
         dispatch({
           type: "score",
           score: score + gained,
           ultimate: ultimateRef.current,
+          combo: comboRef.current,
+          comboMul: comboMulNow,
         });
       } else if (
         Math.abs((hudRef.current.ultimate || 0) - ultimateRef.current) > 0.001
@@ -1147,9 +1330,18 @@ export function useGame(layout) {
         dispatch({ type: "ultimate", value: ultimateRef.current });
       }
 
+      if (hudRef.current.droneCount !== dronesRef.current.length) {
+        dispatch({
+          type: "setDrones",
+          droneCount: dronesRef.current.length,
+        });
+      }
+
       if (livesLost > 0) {
         livesLost = 1;
         iFrameRef.current = 900;
+        comboRef.current = 0;
+        comboTimerRef.current = 0;
         const lives = hudRef.current.lives - livesLost;
         if (lives <= 0) {
           endGame(score + gained);
@@ -1174,7 +1366,9 @@ export function useGame(layout) {
     ]
   );
 
-  useGameLoop(tick, { paused: hud.screen !== SCREEN.PLAYING });
+  useGameLoop(tick, {
+    paused: hud.screen !== SCREEN.PLAYING || hud.paused,
+  });
 
   return {
     hud,
@@ -1190,6 +1384,7 @@ export function useGame(layout) {
     enemyLasers: enemyLasersRef.current,
     missiles: missilesRef.current,
     powerups: powerupsRef.current,
+    drones: dronesRef.current,
     scrollY: scrollRef.current,
     empBurst: empBurstRef.current,
     shake: { x: shakeRef.current.x, y: shakeRef.current.y },
@@ -1197,6 +1392,8 @@ export function useGame(layout) {
     goToStart,
     movePlayerTo,
     fireUltimate,
+    togglePause,
+    resumeGame,
     fire: spawnLaser,
   };
 }

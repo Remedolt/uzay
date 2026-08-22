@@ -20,6 +20,12 @@ const STYLES = {
     color: "#fef3c7",
     icon: "⚡",
   },
+  [POWERUP_TYPE.DRONE]: {
+    border: "#a78bfa",
+    bg: "rgba(167, 139, 250, 0.28)",
+    color: "#ede9fe",
+    icon: "◉",
+  },
 };
 
 export function PowerUp({ x, y, width, height, type }) {

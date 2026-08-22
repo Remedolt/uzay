@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
+  Easing,
   Pressable,
   StyleSheet,
   Text,
@@ -21,10 +23,39 @@ export function GameOverScreen({
 }) {
   const [name, setName] = useState(defaultName || "");
   const [saving, setSaving] = useState(false);
+  const titleAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (defaultName) setName(defaultName);
   }, [defaultName]);
+
+  useEffect(() => {
+    titleAnim.setValue(0);
+    Animated.sequence([
+      Animated.spring(titleAnim, {
+        toValue: 1,
+        friction: 5,
+        tension: 80,
+        useNativeDriver: true,
+      }),
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(titleAnim, {
+            toValue: 1.08,
+            duration: 700,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true,
+          }),
+          Animated.timing(titleAnim, {
+            toValue: 1,
+            duration: 700,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true,
+          }),
+        ])
+      ),
+    ]).start();
+  }, [titleAnim]);
 
   const handleSave = async () => {
     if (saving || scoreSaved) return;
@@ -40,7 +71,30 @@ export function GameOverScreen({
     <View style={styles.overlay}>
       <SpaceBackground score={score} level={level} />
       <View style={styles.panel}>
-        <Text style={styles.title}>Oyun Bitti</Text>
+        <Animated.Text
+          style={[
+            styles.title,
+            {
+              opacity: titleAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, 1],
+              }),
+              transform: [
+                {
+                  scale: titleAnim,
+                },
+                {
+                  translateY: titleAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [-28, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          Oyun Bitti
+        </Animated.Text>
         <Text style={styles.score}>Skor: {score}</Text>
         <Text style={styles.level}>Ulaşılan aşama: {level}</Text>
 
@@ -97,9 +151,14 @@ const styles = StyleSheet.create({
   },
   title: {
     color: "#f87171",
-    fontSize: 40,
+    fontSize: 42,
     fontWeight: "800",
     marginBottom: 12,
+    textAlign: "center",
+    letterSpacing: 1.2,
+    textShadowColor: "rgba(248, 113, 113, 0.65)",
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 18,
   },
   score: {
     color: "#e2e8f0",

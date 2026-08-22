@@ -29,6 +29,32 @@ export const ULTIMATE = {
   empBossDamage: 14,
 };
 
+export const DRONE = {
+  max: 2,
+  size: 32,
+  offsetX: 54,
+  offsetY: 14,
+  bob: 6,
+  fireIntervalMs: 420,
+  laserW: 3,
+  laserH: 16,
+};
+
+export const COMBO = {
+  timeoutMs: 2600,
+  maxMul: 6,
+};
+
+export function comboMultiplier(combo) {
+  const n = combo || 0;
+  if (n < 2) return 1;
+  if (n < 5) return 2;
+  if (n < 9) return 3;
+  if (n < 14) return 4;
+  if (n < 20) return 5;
+  return COMBO.maxMul;
+}
+
 export const LASER = {
   width: 5,
   height: 24,
@@ -37,9 +63,9 @@ export const LASER = {
 };
 
 export const WEAPON = {
-  maxLevel: 2,
-  /** level -> ateş aralığı (ms) */
-  fireIntervalMs: [250, 210, 170],
+  maxLevel: 3,
+  /** level -> ateş aralığı (ms); 0:1x … 3:4x MAX */
+  fireIntervalMs: [250, 205, 165, 125],
 };
 
 export const METEOR = {
@@ -205,9 +231,10 @@ export const POWERUP = {
   dropChance: 0.055,
   /** Silah seyrek; can / kalkan da az */
   weights: {
-    life: 0.32,
-    shield: 0.32,
-    weapon: 0.36,
+    life: 0.28,
+    shield: 0.28,
+    weapon: 0.26,
+    drone: 0.18,
   },
 };
 
@@ -215,6 +242,7 @@ export const POWERUP_TYPE = {
   LIFE: "life",
   SHIELD: "shield",
   WEAPON: "weapon",
+  DRONE: "drone",
 };
 
 export const DIFFICULTIES = [

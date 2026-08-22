@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { MAX_LIVES } from "../../constants/game";
+import { MAX_LIVES, WEAPON } from "../../constants/game";
 
 function Heart({ filled }) {
   return (
@@ -35,13 +35,14 @@ export function Hud({
   shielded,
   shieldHp = 0,
   weaponLevel = 0,
+  combo = 0,
+  comboMul = 1,
+  droneCount = 0,
 }) {
   const insets = useSafeAreaInsets();
   const slots = MAX_LIVES;
-  const isMaxWeapon = weaponLevel >= 2;
-  const weaponLabel = isMaxWeapon
-    ? "MAX"
-    : ["1x", "2x"][Math.min(weaponLevel, 1)];
+  const isMaxWeapon = weaponLevel >= WEAPON.maxLevel;
+  const weaponLabel = isMaxWeapon ? "MAX" : `${weaponLevel + 1}x`;
   const weaponAccent = isMaxWeapon ? "#fbbf24" : "#f59e0b";
   const stageNo = stage || level || 1;
   const waveRatio = quota > 0 ? Math.max(0, Math.min(1, spawned / quota)) : 1;
@@ -92,6 +93,12 @@ export function Hud({
         </View>
 
         <View style={styles.rightCol}>
+          {droneCount > 0 ? (
+            <View style={styles.droneBadge}>
+              <Text style={styles.droneIcon}>◉</Text>
+              <Text style={styles.droneLabel}>Yancı ×{droneCount}</Text>
+            </View>
+          ) : null}
           {shielded ? (
             <View style={styles.shieldBadge}>
               <Text style={styles.shieldIcon}>◈</Text>
@@ -110,6 +117,21 @@ export function Hud({
           </View>
         </View>
       </View>
+
+      {combo >= 2 ? (
+        <View
+          style={[
+            styles.comboDock,
+            { bottom: Math.max(18, insets.bottom + 14) },
+          ]}
+        >
+          <Text style={styles.comboLabel}>KOMBO</Text>
+          <View style={styles.comboRow}>
+            <Text style={styles.comboCount}>{combo}</Text>
+            <Text style={styles.comboMul}>×{comboMul}</Text>
+          </View>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -119,6 +141,8 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 12,
     right: 12,
+    top: 0,
+    bottom: 0,
     zIndex: 2,
   },
   topRow: {
@@ -244,6 +268,60 @@ const styles = StyleSheet.create({
   },
   shieldLabel: {
     color: "#e0f2fe",
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  comboDock: {
+    position: "absolute",
+    left: 0,
+    minWidth: 86,
+    backgroundColor: "rgba(2, 6, 23, 0.78)",
+    borderColor: "rgba(251, 191, 36, 0.7)",
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  comboLabel: {
+    color: "#fde68a",
+    fontSize: 9,
+    fontWeight: "800",
+    letterSpacing: 1,
+  },
+  comboRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 6,
+    marginTop: 1,
+  },
+  comboCount: {
+    color: "#fff7ed",
+    fontSize: 22,
+    fontWeight: "800",
+    lineHeight: 24,
+  },
+  comboMul: {
+    color: "#fbbf24",
+    fontSize: 16,
+    fontWeight: "800",
+  },
+  droneBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(167, 139, 250, 0.2)",
+    borderColor: "rgba(196, 181, 253, 0.55)",
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  droneIcon: {
+    color: "#ddd6fe",
+    fontSize: 11,
+  },
+  droneLabel: {
+    color: "#ede9fe",
     fontSize: 11,
     fontWeight: "700",
   },

@@ -6,8 +6,9 @@ import { SHIPS } from "../../constants/game";
  */
 export function Laser({ x, y, width, height, shipId = "aurora" }) {
   const ship = SHIPS.find((s) => s.id === shipId) || SHIPS[0];
-  const glowW = Math.max(10, width * 2.6);
+  const glowW = Math.max(8, width * 2.6);
   const glowH = height + 10;
+  const tip = Math.max(4, Math.min(7, width + 2));
 
   return (
     <View
@@ -47,6 +48,8 @@ export function Laser({ x, y, width, height, shipId = "aurora" }) {
         style={[
           styles.tip,
           {
+            width: tip,
+            height: tip,
             backgroundColor: ship.laser,
             shadowColor: ship.laser,
           },
@@ -84,8 +87,6 @@ const styles = StyleSheet.create({
   },
   tip: {
     marginTop: 1,
-    width: 7,
-    height: 7,
     borderRadius: 99,
     opacity: 0.9,
     shadowOffset: { width: 0, height: 0 },

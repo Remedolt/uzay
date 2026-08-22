@@ -1,8 +1,9 @@
 import { StyleSheet, View } from "react-native";
 
-/** Boss füzesi — hız vektörüne göre döner; burun +y yönünde */
+/** Boss füzesi — burun hız vektörüne bakar */
 export function Missile({ x, y, width, height, angle = 0 }) {
-  const deg = (angle * 180) / Math.PI;
+  // Sprite +y (aşağı) bakıyor; CSS rotate saat yönünde, hız açısı değil.
+  const deg = (-angle * 180) / Math.PI;
 
   return (
     <View
@@ -39,6 +40,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     alignItems: "center",
     justifyContent: "flex-start",
+    transformOrigin: "center center",
   },
   plume: {
     position: "absolute",
