@@ -1,6 +1,5 @@
 import { StyleSheet, View } from "react-native";
 
-/** Füze — burun hız vektörüne bakar. friendly: oyuncu füzesi */
 export function Missile({ x, y, width, height, angle = 0, fromPlayer = false }) {
   const deg = (-angle * 180) / Math.PI;
   const body = fromPlayer ? "#67e8f9" : "#94a3b8";

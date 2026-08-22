@@ -1,7 +1,3 @@
-/**
- * Aşama müziği — yumuşak pad + sine bas, kısa chiptune arpej yok.
- * node scripts/make-music.js
- */
 const fs = require("fs");
 const path = require("path");
 

@@ -1,6 +1,5 @@
 import { StyleSheet, View } from "react-native";
 
-/** Düşman lazeri (aşağı doğru) */
 export function EnemyLaser({ x, y, width, height }) {
   return (
     <View

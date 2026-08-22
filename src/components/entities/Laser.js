@@ -1,9 +1,6 @@
 import { StyleSheet, View } from "react-native";
 import { SHIPS } from "../../constants/game";
 
-/**
- * Çekirdek + glow + uç parıltısı olan lazer.
- */
 export function Laser({ x, y, width, height, shipId = "aurora" }) {
   const ship = SHIPS.find((s) => s.id === shipId) || SHIPS[0];
   const glowW = Math.max(8, width * 2.6);

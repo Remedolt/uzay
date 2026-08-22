@@ -76,7 +76,6 @@ export function useSfx() {
           ]);
         }
       } catch {
-        // ses yoksa oyun devam eder
       }
     })();
 
@@ -99,7 +98,6 @@ export function useSfx() {
     try {
       await sound.replayAsync();
     } catch {
-      // ignore
     }
   }, []);
 
@@ -114,7 +112,6 @@ export function useSfx() {
             await music.setPositionAsync(0);
           }
         } catch {
-          // ignore
         }
       })
     );
@@ -145,13 +142,11 @@ export function useSfx() {
       try {
         await next.setRateAsync(1, true);
       } catch {
-        // web rate desteği yoksa devam
       }
       if (!status.isPlaying) {
         await next.playAsync();
       }
     } catch {
-      // ignore
     }
   }, []);
 

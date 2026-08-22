@@ -1165,9 +1165,7 @@ export function useGame(layout) {
           const raiderOnScreen =
             !enemy.isRaider ||
             (enemy.x + enemy.width > 8 && enemy.x < layout.width - 8);
-          if (!raiderOnScreen) {
-            /* keep charging until visible */
-          } else {
+          if (raiderOnScreen) {
           enemy.fireAcc = 0;
           if (enemy.mode === "boss") {
             fireBossPattern(enemy, player, pushEnemyLaser, pushMissile);

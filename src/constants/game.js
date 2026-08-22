@@ -12,14 +12,12 @@ export const POINTS_PER_METEOR = 10;
 export const POINTS_PER_ENEMY = 30;
 export const POINTS_PER_RAIDER = 55;
 export const POINTS_PER_BOSS = 180;
-/** Her N puanda 1 level (eski skor ölçeği) */
 export const SCORE_PER_LEVEL = 80;
 
 export const PLAYER = {
   width: 64,
   height: 74,
   bottom: 24,
-  /** Dokunmada gemi parmağın ~1.5–2 cm üstünde kalsın */
   touchOffsetY: 96,
 };
 
@@ -50,7 +48,6 @@ export const LASER = {
 
 export const WEAPON = {
   maxLevel: 3,
-  /** level -> ateş aralığı (ms); 0:1x … 3:4x MAX */
   fireIntervalMs: [250, 205, 165, 125],
 };
 
@@ -59,18 +56,15 @@ export const METEOR = {
   sizeJitter: 14,
   baseSpeed: 72,
   maxSpeed: 220,
-  /** Daha seyrek meteor */
   baseSpawnMs: 3200,
   minSpawnMs: 1400,
 };
 
-/** Ara sıra saldıran düşman gemileri */
 export const ENEMY = {
   width: 64,
   height: 64,
   baseSpeed: 55,
   maxSpeed: 175,
-  /** Meteor yerine daha sık gemi */
   baseSpawnMs: 1600,
   minSpawnMs: 700,
   fireIntervalMs: 1400,
@@ -80,7 +74,6 @@ export const ENEMY = {
   dropChance: 0.1,
   variantCount: 8,
   groupGapMs: 340,
-  /** Nadir kişisel kalkan */
   shieldChance: 0.08,
 };
 
@@ -127,7 +120,6 @@ export const PLAYER_ROCKET = {
   maxAmmo: 6,
 };
 
-/** Aşama dalgaları — kota kadar gemi, sonra o aşamanın boss’u */
 export const STAGES = [
   {
     name: "Keşif",
@@ -298,7 +290,6 @@ export const LEADERBOARD_KEY = "@ufo_shooter/leaderboard_v1";
 export const PLAYER_NAME_KEY = "@ufo_shooter/player_name";
 export const DEFAULT_PLAYER_NAME = "Pilot";
 
-/** Seçilebilir gemiler — görseller assets/ altında */
 export const SHIPS = [
   {
     id: "aurora",

@@ -1,9 +1,5 @@
 import { useEffect, useRef } from "react";
 
-/**
- * requestAnimationFrame tabanlı oyun döngüsü.
- * dt saniye cinsinden gelir; paused iken tick çağrılmaz.
- */
 export function useGameLoop(onTick, { paused } = {}) {
   const callbackRef = useRef(onTick);
   const lastTsRef = useRef(null);

@@ -24,7 +24,6 @@ export async function savePlayerName(name) {
   try {
     await AsyncStorage.setItem(PLAYER_NAME_KEY, clean || DEFAULT_PLAYER_NAME);
   } catch {
-    // ignore
   }
   return clean || DEFAULT_PLAYER_NAME;
 }

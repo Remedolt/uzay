@@ -24,7 +24,6 @@ async function knockWhite(file) {
     const brightness = (r + g + b) / 3;
     const sat = max - min;
 
-    // solid white / near-white boxes
     if (brightness >= 245 && sat <= 35) {
       out[i + 3] = 0;
     } else if (brightness >= 230 && sat <= 25) {

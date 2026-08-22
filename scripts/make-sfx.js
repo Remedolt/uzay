@@ -1,6 +1,3 @@
-/**
- * Basit 16-bit mono WAV ses dosyaları üretir (royalty-free, prosedürel).
- */
 const fs = require("fs");
 const path = require("path");
 
@@ -70,7 +67,6 @@ function mix(a, b, gainB = 1) {
 
 const sr = 22050;
 
-// Kısa lazer peşi
 writeWav(
   "laser.wav",
   mix(
@@ -80,7 +76,6 @@ writeWav(
   )
 );
 
-// Meteor patlaması
 {
   const noise = tone(1, 0.28, sr, 0.45, "noise");
   for (let i = 0; i < noise.length; i += 1) {
@@ -91,7 +86,6 @@ writeWav(
   writeWav("explode.wav", boom);
 }
 
-// Can kaybı / hasar
 writeWav(
   "hit.wav",
   concat(
@@ -100,7 +94,6 @@ writeWav(
   )
 );
 
-// Game over
 writeWav(
   "gameover.wav",
   concat(
@@ -110,10 +103,8 @@ writeWav(
   )
 );
 
-// Gemi seç / UI
 writeWav("select.wav", tone(660, 0.06, sr, 0.25, "sine"));
 
-// Level up
 writeWav(
   "levelup.wav",
   concat(

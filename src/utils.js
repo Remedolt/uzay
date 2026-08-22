@@ -1,9 +1,5 @@
 import { METEOR, SCORE_PER_LEVEL, levelFromScore } from "./constants/game";
 
-/**
- * AABB (Axis-Aligned Bounding Box) çarpışma kontrolü.
- * Tüm varlıklar { x, y, width, height } kullanır; x/y sol-üst köşedir.
- */
 export function aabbIntersects(a, b) {
   return (
     a.x < b.x + b.width &&
@@ -31,9 +27,6 @@ export function randomX(maxWidth, entityWidth) {
 
 export { levelFromScore };
 
-/**
- * Aşamaya göre meteor hızı ve doğma aralığı.
- */
 export function difficultyFromLevel(stage) {
   const tier = Math.max(0, (stage || 1) - 1);
   const speed = Math.min(METEOR.maxSpeed, METEOR.baseSpeed + tier * 16);

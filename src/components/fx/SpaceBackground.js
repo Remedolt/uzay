@@ -84,9 +84,6 @@ function ParallaxCity({ source, offset, tileH, opacity, dim }) {
   );
 }
 
-/**
- * Uzay + megalopolis: katmanlar farklı hızda kayar, şehirde uçuyormuş gibi.
- */
 export function SpaceBackground({
   scrollY = 0,
   level = 1,

@@ -11,7 +11,6 @@ function isBg(r, g, b, a) {
   if (a < 8) return true;
   const brightness = (r + g + b) / 3;
   const sat = Math.max(r, g, b) - Math.min(r, g, b);
-  // white / light gray boxes + fake checker tiles
   if (brightness >= 200 && sat <= 45) return true;
   if (brightness >= 175 && sat <= 20) return true;
   return false;
@@ -40,7 +39,6 @@ async function clean(file) {
     stack.push(idx);
   };
 
-  // edge flood-fill → only remove background connected to borders
   for (let x = 0; x < w; x += 1) {
     push(x, 0);
     push(x, h - 1);
@@ -62,7 +60,6 @@ async function clean(file) {
     push(x, y - 1);
   }
 
-  // soften fringe: near-transparent light fringe pixels
   for (let i = 0; i < out.length; i += 4) {
     const a = out[i + 3];
     if (a === 0) continue;
