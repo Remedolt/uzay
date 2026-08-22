@@ -13,6 +13,6 @@ npm run web
 
 Push to `main` → Actions otomatik deploy eder.
 
-Site: https://remedolt.github.io/uzay/
+Site: https://www.oyuncum.site/
 
 Repo **Settings → Pages → Source: GitHub Actions** olmalı.

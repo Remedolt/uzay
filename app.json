@@ -23,7 +23,7 @@
       "favicon": "./assets/favicon.png"
     },
     "experiments": {
-      "baseUrl": "/uzay"
+      "baseUrl": "/"
     },
     "plugins": [
       "expo-asset"
