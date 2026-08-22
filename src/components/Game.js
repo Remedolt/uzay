@@ -120,7 +120,6 @@ export function Game() {
             level={game.hud.stage || game.hud.level}
             score={game.hud.score}
             playing={playing}
-            phase={game.hud.phase}
           />
 
           {playing && (
