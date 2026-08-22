@@ -10,8 +10,20 @@ const BOSS_GLOW = [
   "#e2e8f0",
 ];
 
-function RaiderShip({ x, y, width, height, vx = 1, hp = 1, maxHp = 1 }) {
+function RaiderShip({
+  x,
+  y,
+  width,
+  height,
+  vx = 1,
+  hp = 1,
+  maxHp = 1,
+  variant = 6,
+}) {
   const right = vx >= 0;
+  const img =
+    ENEMY_SHIP_IMAGES[variant % ENEMY_SHIP_IMAGES.length] ||
+    ENEMY_SHIP_IMAGES[6];
   const ratio = maxHp > 0 ? Math.max(0, Math.min(1, hp / maxHp)) : 1;
 
   return (
@@ -19,38 +31,27 @@ function RaiderShip({ x, y, width, height, vx = 1, hp = 1, maxHp = 1 }) {
       style={[styles.wrap, { left: x, top: y, width, height }]}
       pointerEvents="none"
     >
-      <View
-        style={[
-          styles.hpTrack,
-          { width: "70%", left: "15%" },
-        ]}
-      >
-        <View style={[styles.hpFill, { width: `${ratio * 100}%`, backgroundColor: "#fbbf24" }]} />
+      <View style={styles.raiderHpTrack}>
+        <View
+          style={[
+            styles.hpFill,
+            { width: `${ratio * 100}%`, backgroundColor: "#fbbf24" },
+          ]}
+        />
       </View>
-      <View
+      <Image
+        source={img}
+        defaultSource={ENEMY_SHIP_IMAGES[6]}
         style={[
-          styles.raiderTrail,
-          right ? styles.trailLeft : styles.trailRight,
+          styles.image,
+          {
+            width,
+            height,
+            transform: [{ rotate: right ? "90deg" : "-90deg" }],
+          },
         ]}
+        resizeMode="contain"
       />
-      <View style={styles.raiderHull}>
-        <View style={[styles.raiderStripe, right && styles.raiderStripeFlip]} />
-        <View
-          style={[
-            styles.raiderBridge,
-            right ? { right: "14%" } : { left: "14%" },
-          ]}
-        />
-        <View
-          style={[
-            styles.raiderNose,
-            right ? { right: 2 } : { left: 2 },
-          ]}
-        />
-      </View>
-      <View style={styles.raiderFinTop} />
-      <View style={styles.raiderFinBot} />
-      <View style={[styles.raiderGun, right ? { right: "28%" } : { left: "28%" }]} />
     </View>
   );
 }
@@ -77,6 +78,7 @@ export function EnemyShip({
         vx={vx}
         hp={hp}
         maxHp={maxHp}
+        variant={variant}
       />
     );
   }
@@ -112,7 +114,7 @@ export function EnemyShip({
           styles.image,
           { width, height },
           isBoss && Platform.OS === "web"
-            ? { filter: `drop-shadow(0 0 8px ${glow})` }
+            ? { filter: `drop-shadow(0 0 2px ${glow})` }
             : null,
         ]}
         resizeMode="contain"
@@ -135,13 +137,13 @@ const styles = StyleSheet.create({
   },
   halo: {
     position: "absolute",
-    width: "62%",
-    height: "62%",
-    borderRadius: 22,
-    opacity: 0.32,
+    width: "28%",
+    height: "28%",
+    borderRadius: 16,
+    opacity: 0.08,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.95,
-    shadowRadius: 14,
+    shadowOpacity: 0.28,
+    shadowRadius: 4,
   },
   hpTrack: {
     position: "absolute",
@@ -156,91 +158,20 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     zIndex: 2,
   },
+  raiderHpTrack: {
+    position: "absolute",
+    top: -8,
+    width: "54%",
+    height: 4,
+    borderRadius: 3,
+    backgroundColor: "rgba(15, 23, 42, 0.85)",
+    borderWidth: 1,
+    borderColor: "rgba(251, 191, 36, 0.45)",
+    overflow: "hidden",
+    zIndex: 2,
+  },
   hpFill: {
     height: "100%",
     backgroundColor: "#f87171",
-  },
-  raiderTrail: {
-    position: "absolute",
-    width: 28,
-    height: 10,
-    borderRadius: 8,
-    backgroundColor: "#f59e0b",
-    opacity: 0.7,
-    shadowColor: "#fbbf24",
-    shadowOpacity: 0.95,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 0 },
-  },
-  trailLeft: {
-    left: -16,
-  },
-  trailRight: {
-    right: -16,
-  },
-  raiderHull: {
-    width: "92%",
-    height: "58%",
-    borderRadius: 7,
-    backgroundColor: "#1e293b",
-    borderWidth: 1.5,
-    borderColor: "#fbbf24",
-    overflow: "hidden",
-  },
-  raiderStripe: {
-    position: "absolute",
-    top: "32%",
-    left: "8%",
-    right: "8%",
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: "#f59e0b",
-    opacity: 0.85,
-  },
-  raiderStripeFlip: {},
-  raiderBridge: {
-    position: "absolute",
-    top: "18%",
-    width: "22%",
-    height: "64%",
-    borderRadius: 4,
-    backgroundColor: "#67e8f9",
-    opacity: 0.8,
-  },
-  raiderNose: {
-    position: "absolute",
-    top: "28%",
-    width: 10,
-    height: "44%",
-    borderRadius: 2,
-    backgroundColor: "#fde68a",
-  },
-  raiderFinTop: {
-    position: "absolute",
-    top: 2,
-    width: "38%",
-    height: 6,
-    borderRadius: 2,
-    backgroundColor: "#334155",
-    borderWidth: 1,
-    borderColor: "#94a3b8",
-  },
-  raiderFinBot: {
-    position: "absolute",
-    bottom: 2,
-    width: "38%",
-    height: 6,
-    borderRadius: 2,
-    backgroundColor: "#334155",
-    borderWidth: 1,
-    borderColor: "#94a3b8",
-  },
-  raiderGun: {
-    position: "absolute",
-    bottom: -2,
-    width: 5,
-    height: 12,
-    borderRadius: 1,
-    backgroundColor: "#fca5a5",
   },
 });

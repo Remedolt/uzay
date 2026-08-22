@@ -41,21 +41,6 @@ export const DRONE = {
   laserH: 16,
 };
 
-export const COMBO = {
-  timeoutMs: 2600,
-  maxMul: 6,
-};
-
-export function comboMultiplier(combo) {
-  const n = combo || 0;
-  if (n < 2) return 1;
-  if (n < 5) return 2;
-  if (n < 9) return 3;
-  if (n < 14) return 4;
-  if (n < 20) return 5;
-  return COMBO.maxMul;
-}
-
 export const LASER = {
   width: 5,
   height: 24,
@@ -98,12 +83,13 @@ export const ENEMY = {
 };
 
 export const RAIDER = {
-  width: 108,
-  height: 46,
-  speed: 250,
-  fireIntervalMs: 240,
-  laserSpeed: 360,
+  width: 78,
+  height: 78,
+  speed: 220,
+  fireIntervalMs: 920,
+  laserSpeed: 300,
   hp: 3,
+  variants: [4, 6, 7],
 };
 
 export const BOSS = {
@@ -123,6 +109,18 @@ export const MISSILE = {
   accel: 240,
   launchSpeed: 92,
   maxLife: 6.5,
+};
+
+export const PLAYER_ROCKET = {
+  width: 12,
+  height: 28,
+  speed: 340,
+  accel: 380,
+  launchSpeed: 160,
+  maxLife: 4.2,
+  damage: 4,
+  turn: 260,
+  maxAmmo: 6,
 };
 
 /** Aşama dalgaları — kota kadar gemi, sonra o aşamanın boss’u */
@@ -153,7 +151,7 @@ export const STAGES = [
     missileMs: 2400,
     missileCount: 1,
     missileHoming: 110,
-    raiderChance: 0.18,
+    raiderChance: 0.08,
   },
   {
     name: "Kuşatma",
@@ -167,7 +165,7 @@ export const STAGES = [
     missileMs: 1900,
     missileCount: 2,
     missileHoming: 135,
-    raiderChance: 0.22,
+    raiderChance: 0.1,
   },
   {
     name: "Kor Ateş",
@@ -181,7 +179,7 @@ export const STAGES = [
     missileMs: 1500,
     missileCount: 2,
     missileHoming: 160,
-    raiderChance: 0.12,
+    raiderChance: 0.06,
   },
   {
     name: "Mor Fırtına",
@@ -195,7 +193,7 @@ export const STAGES = [
     missileMs: 1200,
     missileCount: 3,
     missileHoming: 190,
-    raiderChance: 0.26,
+    raiderChance: 0.11,
   },
   {
     name: "Çelik Hat",
@@ -209,7 +207,7 @@ export const STAGES = [
     missileMs: 980,
     missileCount: 3,
     missileHoming: 230,
-    raiderChance: 0.28,
+    raiderChance: 0.12,
   },
 ];
 
@@ -227,7 +225,7 @@ export function stageConfig(stage) {
     missileMs: Math.max(700, base.missileMs - loop * 80),
     missileCount: Math.min(4, base.missileCount + Math.floor(loop / 2)),
     missileHoming: base.missileHoming + loop * 20,
-    raiderChance: Math.min(0.4, (base.raiderChance || 0) + loop * 0.05),
+    raiderChance: Math.min(0.18, (base.raiderChance || 0) + loop * 0.03),
   };
 }
 
@@ -245,13 +243,13 @@ export const ENEMY_MODES = [
 export const POWERUP = {
   size: 34,
   speed: 95,
-  dropChance: 0.055,
-  /** Silah seyrek; can / kalkan da az */
+  dropChance: 0.07,
   weights: {
-    life: 0.28,
-    shield: 0.28,
-    weapon: 0.26,
-    drone: 0.18,
+    life: 0.22,
+    shield: 0.22,
+    weapon: 0.2,
+    drone: 0.14,
+    rocket: 0.22,
   },
 };
 
@@ -260,6 +258,7 @@ export const POWERUP_TYPE = {
   SHIELD: "shield",
   WEAPON: "weapon",
   DRONE: "drone",
+  ROCKET: "rocket",
 };
 
 export const DIFFICULTIES = [

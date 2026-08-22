@@ -35,9 +35,8 @@ export function Hud({
   shielded,
   shieldHp = 0,
   weaponLevel = 0,
-  combo = 0,
-  comboMul = 1,
   droneCount = 0,
+  missiles = 0,
 }) {
   const insets = useSafeAreaInsets();
   const slots = MAX_LIVES;
@@ -120,21 +119,16 @@ export function Hud({
       </View>
       </View>
 
-      {combo >= 2 ? (
-        <View
-          style={[
-            styles.comboDock,
-            { bottom: Math.max(18, insets.bottom + 14) },
-          ]}
-          pointerEvents="none"
-        >
-          <Text style={styles.comboLabel}>KOMBO</Text>
-          <View style={styles.comboRow}>
-            <Text style={styles.comboCount}>{combo}</Text>
-            <Text style={styles.comboMul}>×{comboMul}</Text>
-          </View>
-        </View>
-      ) : null}
+      <View
+        style={[
+          styles.rocketDock,
+          { bottom: Math.max(18, insets.bottom + 14) },
+        ]}
+        pointerEvents="none"
+      >
+        <Text style={styles.rocketLabel}>FÜZE</Text>
+        <Text style={styles.rocketCount}>{missiles}</Text>
+      </View>
     </>
   );
 }
@@ -273,40 +267,30 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "700",
   },
-  comboDock: {
+  rocketDock: {
     position: "absolute",
     left: 12,
     zIndex: 4,
     minWidth: 86,
     backgroundColor: "rgba(2, 6, 23, 0.78)",
-    borderColor: "rgba(251, 191, 36, 0.7)",
+    borderColor: "rgba(34, 211, 238, 0.7)",
     borderWidth: 1,
     borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 7,
   },
-  comboLabel: {
-    color: "#fde68a",
+  rocketLabel: {
+    color: "#a5f3fc",
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 1,
   },
-  comboRow: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    gap: 6,
-    marginTop: 1,
-  },
-  comboCount: {
-    color: "#fff7ed",
+  rocketCount: {
+    color: "#ecfeff",
     fontSize: 22,
     fontWeight: "800",
     lineHeight: 24,
-  },
-  comboMul: {
-    color: "#fbbf24",
-    fontSize: 16,
-    fontWeight: "800",
+    marginTop: 1,
   },
   droneBadge: {
     flexDirection: "row",

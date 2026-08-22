@@ -62,7 +62,7 @@ export function Game() {
     .onChange((e) => moveFromPointer(e.x, e.y, true));
 
   const tap = Gesture.Tap().runOnJS(true).onEnd(() => {
-    if (game.hud.screen === SCREEN.PLAYING) game.fire();
+    if (game.hud.screen === SCREEN.PLAYING) game.fireMissile();
   });
 
   const onWebPointerMove = useCallback(
@@ -97,6 +97,11 @@ export function Game() {
             ? {
                 onMouseMove: onWebPointerMove,
                 onMouseDown: onWebPointerMove,
+                onClick: (e) => {
+                  if (game.hud.screen !== SCREEN.PLAYING) return;
+                  e.preventDefault?.();
+                  game.fireMissile();
+                },
                 onTouchMove: (e) => {
                   const t = e.nativeEvent?.touches?.[0] || e.nativeEvent;
                   const rect = e.currentTarget.getBoundingClientRect?.();
@@ -130,9 +135,8 @@ export function Game() {
                 shielded={game.hud.shielded}
                 shieldHp={game.hud.shieldHp}
                 weaponLevel={game.hud.weaponLevel}
-                combo={game.hud.combo}
-                comboMul={game.hud.comboMul}
                 droneCount={game.hud.droneCount}
+                missiles={game.hud.missiles}
               />
               <StageBanner
                 title={game.hud.banner}

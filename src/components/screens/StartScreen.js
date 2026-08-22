@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { GAME_TITLE, PLAYER, SHIPS, getShip } from "../../constants/game";
 import { Player } from "../entities/Player";
 import { SpaceBackground } from "../fx/SpaceBackground";
 import { Scoreboard } from "../hud/Scoreboard";
+import { HowToPlay } from "./HowToPlay";
 
 const STATS = [
   { key: "speed", label: "Hız" },
@@ -41,6 +43,7 @@ export function StartScreen({
   onStart,
 }) {
   const selected = getShip(shipId);
+  const [help, setHelp] = useState(false);
 
   return (
     <View style={styles.overlay}>
@@ -98,11 +101,15 @@ export function StartScreen({
         >
           <Text style={styles.buttonText}>Oyuna Başla</Text>
         </Pressable>
+        <Pressable style={styles.helpBtn} onPress={() => setHelp(true)}>
+          <Text style={styles.helpText}>Nasıl oynanır</Text>
+        </Pressable>
 
         <View style={styles.boardWrap}>
           <Scoreboard entries={leaderboard} />
         </View>
       </ScrollView>
+      <HowToPlay visible={help} onClose={() => setHelp(false)} />
     </View>
   );
 }
@@ -229,5 +236,18 @@ const styles = StyleSheet.create({
     color: "#0f172a",
     fontSize: 18,
     fontWeight: "800",
+  },
+  helpBtn: {
+    marginTop: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "rgba(148, 163, 184, 0.45)",
+  },
+  helpText: {
+    color: "#e2e8f0",
+    fontSize: 14,
+    fontWeight: "700",
   },
 });
