@@ -58,11 +58,12 @@ export function Hud({
     phase === "boss" ? "#f87171" : phase === "clear" ? "#34d399" : "#a78bfa";
 
   return (
-    <View
-      style={[styles.bar, { paddingTop: insets.top + 10 }]}
-      pointerEvents="none"
-    >
-      <View style={styles.topRow}>
+    <>
+      <View
+        style={[styles.bar, { paddingTop: insets.top + 10 }]}
+        pointerEvents="none"
+      >
+        <View style={styles.topRow}>
         <View style={styles.panel}>
           <StatChip icon="★" label="SKOR" value={score} accent="#fbbf24" />
           <View style={[styles.chip, { borderColor: "#a78bfa" }]}>
@@ -117,6 +118,7 @@ export function Hud({
           </View>
         </View>
       </View>
+      </View>
 
       {combo >= 2 ? (
         <View
@@ -124,6 +126,7 @@ export function Hud({
             styles.comboDock,
             { bottom: Math.max(18, insets.bottom + 14) },
           ]}
+          pointerEvents="none"
         >
           <Text style={styles.comboLabel}>KOMBO</Text>
           <View style={styles.comboRow}>
@@ -132,7 +135,7 @@ export function Hud({
           </View>
         </View>
       ) : null}
-    </View>
+    </>
   );
 }
 
@@ -142,8 +145,7 @@ const styles = StyleSheet.create({
     left: 12,
     right: 12,
     top: 0,
-    bottom: 0,
-    zIndex: 2,
+    zIndex: 4,
   },
   topRow: {
     flexDirection: "row",
@@ -273,7 +275,8 @@ const styles = StyleSheet.create({
   },
   comboDock: {
     position: "absolute",
-    left: 0,
+    left: 12,
+    zIndex: 4,
     minWidth: 86,
     backgroundColor: "rgba(2, 6, 23, 0.78)",
     borderColor: "rgba(251, 191, 36, 0.7)",

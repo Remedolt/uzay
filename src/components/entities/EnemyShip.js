@@ -1,9 +1,26 @@
-import { Image, StyleSheet, View } from "react-native";
+import { Image, Platform, StyleSheet, View } from "react-native";
 import { BOSS_SHIP_IMAGES, ENEMY_SHIP_IMAGES } from "../../assets";
 
-/**
- * Düşman / boss uzay gemisi — şeffaf PNG sprite.
- */
+const ENEMY_GLOW = [
+  "#f87171",
+  "#fb7185",
+  "#c084fc",
+  "#34d399",
+  "#22d3ee",
+  "#f472b6",
+  "#fbbf24",
+  "#e2e8f0",
+];
+
+const BOSS_GLOW = [
+  "#f87171",
+  "#22d3ee",
+  "#34d399",
+  "#fbbf24",
+  "#c084fc",
+  "#e2e8f0",
+];
+
 export function EnemyShip({
   x,
   y,
@@ -14,10 +31,10 @@ export function EnemyShip({
   hp,
   maxHp,
 }) {
-  const img = isBoss
-    ? BOSS_SHIP_IMAGES[variant % BOSS_SHIP_IMAGES.length] || BOSS_SHIP_IMAGES[0]
-    : ENEMY_SHIP_IMAGES[variant % ENEMY_SHIP_IMAGES.length] ||
-      ENEMY_SHIP_IMAGES[0];
+  const palette = isBoss ? BOSS_GLOW : ENEMY_GLOW;
+  const images = isBoss ? BOSS_SHIP_IMAGES : ENEMY_SHIP_IMAGES;
+  const img = images[variant % images.length] || images[0];
+  const glow = palette[variant % palette.length];
   const ratio =
     isBoss && maxHp > 0 ? Math.max(0, Math.min(1, (hp ?? maxHp) / maxHp)) : 0;
 
@@ -31,7 +48,24 @@ export function EnemyShip({
           <View style={[styles.hpFill, { width: `${ratio * 100}%` }]} />
         </View>
       ) : null}
-      <Image source={img} style={styles.image} resizeMode="contain" />
+      <View
+        style={[
+          styles.halo,
+          { backgroundColor: glow, shadowColor: glow },
+        ]}
+      />
+      <Image
+        source={img}
+        defaultSource={images[0]}
+        style={[
+          styles.image,
+          { width, height },
+          Platform.OS === "web"
+            ? { filter: `drop-shadow(0 0 7px ${glow})` }
+            : null,
+        ]}
+        resizeMode="contain"
+      />
     </View>
   );
 }
@@ -43,11 +77,20 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "transparent",
     overflow: "visible",
+    zIndex: 1,
   },
   image: {
-    width: "100%",
-    height: "100%",
     backgroundColor: "transparent",
+  },
+  halo: {
+    position: "absolute",
+    width: "58%",
+    height: "58%",
+    borderRadius: 18,
+    opacity: 0.28,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.95,
+    shadowRadius: 12,
   },
   hpTrack: {
     position: "absolute",
@@ -60,6 +103,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(248, 113, 113, 0.55)",
     overflow: "hidden",
+    zIndex: 2,
   },
   hpFill: {
     height: "100%",

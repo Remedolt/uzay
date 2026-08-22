@@ -80,8 +80,8 @@ export const METEOR = {
 
 /** Ara sıra saldıran düşman gemileri */
 export const ENEMY = {
-  width: 56,
-  height: 56,
+  width: 64,
+  height: 64,
   baseSpeed: 55,
   maxSpeed: 175,
   /** Meteor yerine daha sık gemi */
