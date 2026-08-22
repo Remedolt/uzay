@@ -10,6 +10,7 @@ export const INITIAL_LIVES = 3;
 export const MAX_LIVES = 5;
 export const POINTS_PER_METEOR = 10;
 export const POINTS_PER_ENEMY = 30;
+export const POINTS_PER_RAIDER = 55;
 export const POINTS_PER_BOSS = 180;
 /** Her N puanda 1 level (eski skor ölçeği) */
 export const SCORE_PER_LEVEL = 80;
@@ -96,6 +97,15 @@ export const ENEMY = {
   groupGapMs: 340,
 };
 
+export const RAIDER = {
+  width: 108,
+  height: 46,
+  speed: 250,
+  fireIntervalMs: 240,
+  laserSpeed: 360,
+  hp: 3,
+};
+
 export const BOSS = {
   width: 118,
   height: 118,
@@ -129,6 +139,7 @@ export const STAGES = [
     missileMs: 3200,
     missileCount: 1,
     missileHoming: 88,
+    raiderChance: 0,
   },
   {
     name: "Pusula",
@@ -142,6 +153,7 @@ export const STAGES = [
     missileMs: 2400,
     missileCount: 1,
     missileHoming: 110,
+    raiderChance: 0.18,
   },
   {
     name: "Kuşatma",
@@ -155,6 +167,7 @@ export const STAGES = [
     missileMs: 1900,
     missileCount: 2,
     missileHoming: 135,
+    raiderChance: 0.22,
   },
   {
     name: "Kor Ateş",
@@ -168,6 +181,7 @@ export const STAGES = [
     missileMs: 1500,
     missileCount: 2,
     missileHoming: 160,
+    raiderChance: 0.12,
   },
   {
     name: "Mor Fırtına",
@@ -181,6 +195,7 @@ export const STAGES = [
     missileMs: 1200,
     missileCount: 3,
     missileHoming: 190,
+    raiderChance: 0.26,
   },
   {
     name: "Çelik Hat",
@@ -194,6 +209,7 @@ export const STAGES = [
     missileMs: 980,
     missileCount: 3,
     missileHoming: 230,
+    raiderChance: 0.28,
   },
 ];
 
@@ -211,6 +227,7 @@ export function stageConfig(stage) {
     missileMs: Math.max(700, base.missileMs - loop * 80),
     missileCount: Math.min(4, base.missileCount + Math.floor(loop / 2)),
     missileHoming: base.missileHoming + loop * 20,
+    raiderChance: Math.min(0.4, (base.raiderChance || 0) + loop * 0.05),
   };
 }
 

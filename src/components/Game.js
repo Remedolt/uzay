@@ -12,6 +12,7 @@ import { Missile } from "./entities/Missile";
 import { PowerUp } from "./entities/PowerUp";
 import { Drone } from "./entities/Drone";
 import { EmpBurst } from "./fx/EmpBurst";
+import { BossBurst } from "./fx/BossBurst";
 import { SpaceBackground } from "./fx/SpaceBackground";
 import { StageBanner } from "./fx/StageBanner";
 import { Hud } from "./hud/Hud";
@@ -160,6 +161,7 @@ export function Game() {
               ))}
               <Player {...game.player} />
               <EmpBurst burst={game.empBurst} />
+              <BossBurst burst={game.bossBurst} />
             </>
           )}
         </View>

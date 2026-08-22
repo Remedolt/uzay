@@ -15,8 +15,10 @@ import {
   POINTS_PER_BOSS,
   POINTS_PER_ENEMY,
   POINTS_PER_METEOR,
+  POINTS_PER_RAIDER,
   POWERUP,
   POWERUP_TYPE,
+  RAIDER,
   SCREEN,
   SHIPS,
   ULTIMATE,
@@ -310,6 +312,7 @@ export function useGame(layout) {
   const ultimateRef = useRef(0);
   const empPendingRef = useRef(false);
   const empBurstRef = useRef({ t: 0, x: 0, y: 0 });
+  const bossBurstRef = useRef({ t: 0, x: 0, y: 0 });
   const shakeRef = useRef({ t: 0, x: 0, y: 0 });
   const comboRef = useRef(0);
   const comboTimerRef = useRef(0);
@@ -367,6 +370,7 @@ export function useGame(layout) {
     ultimateRef.current = 0;
     empPendingRef.current = false;
     empBurstRef.current = { t: 0, x: 0, y: 0 };
+    bossBurstRef.current = { t: 0, x: 0, y: 0 };
     shakeRef.current = { t: 0, x: 0, y: 0 };
     comboRef.current = 0;
     comboTimerRef.current = 0;
@@ -498,8 +502,48 @@ export function useGame(layout) {
     [layout.width]
   );
 
+  const spawnRaider = useCallback(() => {
+    const fromLeft = Math.random() < 0.5;
+    const band = Math.max(72, Math.min(220, layout.height * 0.32));
+    const y = 64 + Math.random() * band;
+    const vx = (fromLeft ? 1 : -1) * (RAIDER.speed + stageRef.current * 8);
+    enemiesRef.current.push({
+      id: uid(),
+      x: fromLeft ? -RAIDER.width : layout.width,
+      y,
+      baseY: y,
+      width: RAIDER.width,
+      height: RAIDER.height,
+      vx,
+      speed: 0,
+      phase: Math.random() * Math.PI * 2,
+      weaveAmp: 0,
+      fireAcc: 40,
+      fireInterval: RAIDER.fireIntervalMs,
+      laserSpeed: RAIDER.laserSpeed,
+      mode: "raider",
+      variant: 0,
+      burstLeft: 0,
+      isBoss: false,
+      isRaider: true,
+      hp: RAIDER.hp,
+      maxHp: RAIDER.hp,
+    });
+    spawnedRef.current += 1;
+    dispatch({
+      type: "wave",
+      spawned: spawnedRef.current,
+      quota: stageConfig(stageRef.current).enemyQuota,
+    });
+  }, [layout.width, layout.height]);
+
   const spawnEnemy = useCallback(
     (speed) => {
+      const cfg = stageConfig(stageRef.current);
+      if ((cfg.raiderChance || 0) > 0 && Math.random() < cfg.raiderChance) {
+        spawnRaider();
+        return;
+      }
       const mode =
         ENEMY_MODES[Math.floor(Math.random() * ENEMY_MODES.length)];
       const x = randomX(layout.width, ENEMY.width);
@@ -557,7 +601,7 @@ export function useGame(layout) {
         quota: stageConfig(stageRef.current).enemyQuota,
       });
     },
-    [layout.width]
+    [layout.width, spawnRaider]
   );
 
   const spawnBoss = useCallback(
@@ -692,6 +736,10 @@ export function useGame(layout) {
       if (empBurstRef.current.t > 0) {
         empBurstRef.current.t = Math.min(1, empBurstRef.current.t + dt * 1.85);
         if (empBurstRef.current.t >= 1) empBurstRef.current.t = 0;
+      }
+      if (bossBurstRef.current.t > 0) {
+        bossBurstRef.current.t = Math.min(1, bossBurstRef.current.t + dt * 2.4);
+        if (bossBurstRef.current.t >= 1) bossBurstRef.current.t = 0;
       }
       if (shakeRef.current.t > 0) {
         shakeRef.current.t -= dt;
@@ -927,6 +975,10 @@ export function useGame(layout) {
               Math.max(0, layout.width - enemy.width)
             );
           }
+        } else if (enemy.isRaider) {
+          enemy.x += (enemy.vx || RAIDER.speed) * dt;
+          enemy.phase += dt * 5;
+          enemy.y = enemy.baseY + Math.sin(enemy.phase) * 10;
         } else {
           enemy.y += enemy.speed * dt;
           const phaseSpeed =
@@ -950,6 +1002,12 @@ export function useGame(layout) {
             pushEnemyLaser(enemy);
           }
         } else if (enemy.fireAcc >= interval && enemy.y > 16) {
+          const raiderOnScreen =
+            !enemy.isRaider ||
+            (enemy.x + enemy.width > 8 && enemy.x < layout.width - 8);
+          if (!raiderOnScreen) {
+            /* keep charging until visible */
+          } else {
           enemy.fireAcc = 0;
           if (enemy.mode === "boss") {
             const kind = enemy.bossVariant ?? enemy.variant ?? 0;
@@ -1014,8 +1072,15 @@ export function useGame(layout) {
             const dx =
               player.x + player.width / 2 - (enemy.x + enemy.width / 2);
             pushEnemyLaser(enemy, 0, clamp(dx * 1.1, -140, 140));
+          } else if (enemy.mode === "raider") {
+            const dx =
+              player.x + player.width / 2 - (enemy.x + enemy.width / 2);
+            pushEnemyLaser(enemy, -18);
+            pushEnemyLaser(enemy, 18);
+            pushEnemyLaser(enemy, 0, clamp(dx * 0.4, -90, 90));
           } else {
             pushEnemyLaser(enemy);
+          }
           }
         }
 
@@ -1147,6 +1212,24 @@ export function useGame(layout) {
                 1,
                 ultimateRef.current + ULTIMATE.perBoss
               );
+              bossBurstRef.current = {
+                t: 0.02,
+                x: enemy.x + enemy.width / 2,
+                y: enemy.y + enemy.height / 2,
+              };
+              shakeRef.current.t = Math.max(shakeRef.current.t, 0.3);
+            }
+          } else if (enemy.isRaider) {
+            enemy.hp = (enemy.hp || 1) - (shot.damage || 1);
+            if (enemy.hp <= 0) {
+              dead = true;
+              destroyedCount += 1;
+              gained += Math.round(POINTS_PER_RAIDER * scoreMul);
+              spawnPowerUp(enemy, 0.4);
+              ultimateRef.current = Math.min(
+                1,
+                ultimateRef.current + ULTIMATE.perEnemy * 1.6
+              );
             }
           } else {
             dead = true;
@@ -1170,7 +1253,19 @@ export function useGame(layout) {
               comboHits += 1;
               gained += Math.round(POINTS_PER_BOSS * scoreMul);
               spawnPowerUp(enemy, 1);
+              bossBurstRef.current = {
+                t: 0.02,
+                x: enemy.x + enemy.width / 2,
+                y: enemy.y + enemy.height / 2,
+              };
+              shakeRef.current.t = Math.max(shakeRef.current.t, 0.3);
             }
+          } else if (enemy.isRaider) {
+            dead = true;
+            destroyedCount += 1;
+            comboHits += 1;
+            gained += Math.round(POINTS_PER_RAIDER * scoreMul);
+            spawnPowerUp(enemy, 0.4);
           } else {
             dead = true;
             destroyedCount += 1;
@@ -1181,7 +1276,11 @@ export function useGame(layout) {
         }
         if (dead) continue;
 
-        if (!enemy.isBoss && isOffScreenBottom(enemy, layout.height)) continue;
+        if (enemy.isRaider) {
+          if (enemy.x > layout.width + 72 || enemy.x + enemy.width < -72)
+            continue;
+        } else if (!enemy.isBoss && isOffScreenBottom(enemy, layout.height))
+          continue;
         if (hitDrone(enemy)) playRef.current("explode");
         const result = resolveHazardHit(aabbIntersects(enemy, player));
         if (result === "damage") livesLost += 1;
@@ -1358,6 +1457,7 @@ export function useGame(layout) {
       layout.height,
       layout.width,
       resolveHazardHit,
+      spawnRaider,
       spawnBoss,
       spawnEnemy,
       spawnLaser,
@@ -1387,6 +1487,7 @@ export function useGame(layout) {
     drones: dronesRef.current,
     scrollY: scrollRef.current,
     empBurst: empBurstRef.current,
+    bossBurst: bossBurstRef.current,
     shake: { x: shakeRef.current.x, y: shakeRef.current.y },
     startGame,
     goToStart,
