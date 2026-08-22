@@ -36,7 +36,6 @@ function StatRow({ label, value, color }) {
 }
 
 export function StartScreen({
-  highScore,
   leaderboard = [],
   shipId,
   onSelectShip,
@@ -53,7 +52,6 @@ export function StartScreen({
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.title}>{GAME_TITLE}</Text>
-        <Text style={styles.highScore}>En yüksek: {highScore}</Text>
 
         <Text style={styles.pickLabel}>GEMİ SEÇ</Text>
         <View style={styles.shipRow}>
@@ -129,13 +127,7 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: "800",
     letterSpacing: 1,
-  },
-  highScore: {
-    color: "#fbbf24",
-    fontSize: 16,
-    marginTop: 10,
-    marginBottom: 14,
-    fontWeight: "700",
+    marginBottom: 18,
   },
   boardWrap: {
     width: "100%",
@@ -147,6 +139,7 @@ const styles = StyleSheet.create({
     color: "#cbd5e1",
     fontSize: 13,
     letterSpacing: 1,
+    marginTop: 4,
     marginBottom: 8,
   },
   shipRow: {

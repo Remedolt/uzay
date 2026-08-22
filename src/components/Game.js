@@ -182,7 +182,6 @@ export function Game() {
 
       {game.hud.screen === SCREEN.START && (
         <StartScreen
-          highScore={game.hud.highScore}
           leaderboard={game.hud.leaderboard}
           shipId={game.shipId}
           onSelectShip={game.setShipId}
