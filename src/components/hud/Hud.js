@@ -33,11 +33,16 @@ export function Hud({
   spawned = 0,
   quota = 8,
   shielded,
+  shieldHp = 0,
   weaponLevel = 0,
 }) {
   const insets = useSafeAreaInsets();
   const slots = MAX_LIVES;
-  const weaponLabel = ["1x", "2x", "3x"][Math.min(weaponLevel, 2)];
+  const isMaxWeapon = weaponLevel >= 2;
+  const weaponLabel = isMaxWeapon
+    ? "MAX"
+    : ["1x", "2x"][Math.min(weaponLevel, 1)];
+  const weaponAccent = isMaxWeapon ? "#fbbf24" : "#f59e0b";
   const stageNo = stage || level || 1;
   const waveRatio = quota > 0 ? Math.max(0, Math.min(1, spawned / quota)) : 1;
   const progressText =
@@ -78,14 +83,21 @@ export function Hud({
               </View>
             </View>
           </View>
-          <StatChip icon="✦" label="SİLAH" value={weaponLabel} accent="#f59e0b" />
+          <StatChip
+            icon="✦"
+            label="SİLAH"
+            value={weaponLabel}
+            accent={weaponAccent}
+          />
         </View>
 
         <View style={styles.rightCol}>
           {shielded ? (
             <View style={styles.shieldBadge}>
               <Text style={styles.shieldIcon}>◈</Text>
-              <Text style={styles.shieldLabel}>Kalkan</Text>
+              <Text style={styles.shieldLabel}>
+                Kalkan{shieldHp > 1 ? ` x${shieldHp}` : ""}
+              </Text>
             </View>
           ) : null}
           <View style={styles.livesPanel}>

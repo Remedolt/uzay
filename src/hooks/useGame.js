@@ -18,6 +18,7 @@ import {
   SCREEN,
   SHIPS,
   WEAPON,
+  getShip,
   stageConfig,
 } from "../constants/game";
 import {
@@ -51,6 +52,7 @@ const initialHud = {
   banner: "",
   bannerSub: "",
   shielded: false,
+  shieldHp: 0,
   weaponLevel: 0,
   scoreSaved: false,
   spawned: 0,
@@ -78,14 +80,15 @@ function hudReducer(state, action) {
         ...state,
         screen: SCREEN.PLAYING,
         score: 0,
-        lives: INITIAL_LIVES,
+        lives: action.lives ?? INITIAL_LIVES,
         level: 1,
         stage: 1,
         stageName: stageConfig(1).name,
         phase: "wave",
         banner: "AŞAMA 1",
         bannerSub: stageConfig(1).name,
-        shielded: false,
+        shielded: !!action.shielded,
+        shieldHp: action.shieldHp || 0,
         weaponLevel: 0,
         scoreSaved: false,
         spawned: 0,
@@ -132,14 +135,21 @@ function hudReducer(state, action) {
         ...state,
         lives: action.lives,
         shielded: false,
+        shieldHp: 0,
         weaponLevel: 0,
       };
-    case "shieldBreak":
-      return { ...state, shielded: false };
+    case "shieldBreak": {
+      const hp = Math.max(0, (state.shieldHp || 1) - 1);
+      return { ...state, shieldHp: hp, shielded: hp > 0 };
+    }
     case "grantLife":
       return { ...state, lives: Math.min(MAX_LIVES, state.lives + 1) };
     case "grantShield":
-      return { ...state, shielded: true };
+      return {
+        ...state,
+        shielded: true,
+        shieldHp: action.hits || 1,
+      };
     case "grantWeapon":
       return {
         ...state,
@@ -152,6 +162,7 @@ function hudReducer(state, action) {
         score: action.score,
         lives: 0,
         shielded: false,
+        shieldHp: 0,
         weaponLevel: 0,
         scoreSaved: false,
         highScore: Math.max(state.highScore, action.score),
@@ -170,6 +181,7 @@ function hudReducer(state, action) {
         ...state,
         screen: SCREEN.START,
         shielded: false,
+        shieldHp: 0,
         weaponLevel: 0,
         scoreSaved: false,
         phase: "wave",
@@ -196,9 +208,11 @@ export function useGame(layout) {
   const [hud, dispatch] = useReducer(hudReducer, initialHud);
   const [shipId, setShipIdState] = useState(SHIPS[0].id);
   const [playerName, setPlayerNameState] = useState(DEFAULT_PLAYER_NAME);
-  const { play, startMusic, stopMusic } = useSfx();
+  const { play, startMusic, stopMusic, setStageMusic } = useSfx();
   const playRef = useRef(play);
   playRef.current = play;
+  const setStageMusicRef = useRef(setStageMusic);
+  setStageMusicRef.current = setStageMusic;
   const hudRef = useRef(hud);
   hudRef.current = hud;
   const shipIdRef = useRef(shipId);
@@ -245,6 +259,7 @@ export function useGame(layout) {
   useEffect(() => {
     if (!layout.width) return;
     playerRef.current.x = (layout.width - PLAYER.width) / 2;
+    playerRef.current.targetX = playerRef.current.x;
     playerRef.current.y = layout.height - PLAYER.height - PLAYER.bottom;
   }, [layout.width, layout.height]);
 
@@ -278,7 +293,9 @@ export function useGame(layout) {
     clearAccRef.current = 0;
     iFrameRef.current = 0;
     if (layout.width) {
-      playerRef.current.x = (layout.width - PLAYER.width) / 2;
+      const x = (layout.width - PLAYER.width) / 2;
+      playerRef.current.x = x;
+      playerRef.current.targetX = x;
       playerRef.current.y = layout.height - PLAYER.height - PLAYER.bottom;
     }
   }, [layout.width, layout.height]);
@@ -286,9 +303,15 @@ export function useGame(layout) {
   const startGame = useCallback(
     (selectedShipId) => {
       if (selectedShipId) setShipIdState(selectedShipId);
+      const ship = getShip(selectedShipId || shipIdRef.current);
       resetWorld();
-      dispatch({ type: "start" });
-      startMusic();
+      dispatch({
+        type: "start",
+        lives: ship.lives,
+        shielded: ship.startShield,
+        shieldHp: ship.startShield ? ship.shieldMax : 0,
+      });
+      startMusic(1, false);
     },
     [resetWorld, startMusic]
   );
@@ -302,7 +325,7 @@ export function useGame(layout) {
   const movePlayerTo = useCallback(
     (localX) => {
       const half = PLAYER.width / 2;
-      playerRef.current.x = clamp(
+      playerRef.current.targetX = clamp(
         localX - half,
         0,
         Math.max(0, layout.width - PLAYER.width)
@@ -317,6 +340,7 @@ export function useGame(layout) {
     const cx = p.x + p.width / 2 - LASER.width / 2;
     const y = p.y - LASER.height;
     const shipIdNow = shipIdRef.current;
+    const ship = getShip(shipIdNow);
     const mk = (x) => ({
       id: uid(),
       x,
@@ -324,6 +348,8 @@ export function useGame(layout) {
       width: LASER.width,
       height: LASER.height,
       shipId: shipIdNow,
+      speed: LASER.speed * (ship.laserSpeedMul || 1),
+      damage: ship.damage || 1,
     });
 
     if (level <= 0) {
@@ -523,6 +549,17 @@ export function useGame(layout) {
 
       if (iFrameRef.current > 0) iFrameRef.current -= dt * 1000;
 
+      const ship = getShip(shipIdRef.current);
+      const maxX = Math.max(0, layout.width - PLAYER.width);
+      const targetX = clamp(playerRef.current.targetX ?? playerRef.current.x, 0, maxX);
+      const step = (ship.moveSpeed || 700) * dt;
+      const dx = targetX - playerRef.current.x;
+      playerRef.current.x = clamp(
+        playerRef.current.x + clamp(dx, -step, step),
+        0,
+        maxX
+      );
+
       if (bannerAccRef.current > 0) {
         bannerAccRef.current -= dt * 1000;
         if (bannerAccRef.current <= 0 && phaseRef.current !== "clear") {
@@ -533,9 +570,9 @@ export function useGame(layout) {
       scrollRef.current += speed * (0.45 + stage * 0.08) * dt;
 
       const fireMs =
-        WEAPON.fireIntervalMs[
+        (WEAPON.fireIntervalMs[
           Math.min(weaponLevel, WEAPON.fireIntervalMs.length - 1)
-        ] || LASER.fireIntervalMs;
+        ] || LASER.fireIntervalMs) * (ship.fireMul || 1);
       fireAccRef.current += dt * 1000;
       if (fireAccRef.current >= fireMs) {
         fireAccRef.current = 0;
@@ -607,6 +644,7 @@ export function useGame(layout) {
             quota: nextCfg.enemyQuota,
           });
           playRef.current("levelup");
+          setStageMusicRef.current(nextStage, false);
         }
       }
 
@@ -618,7 +656,7 @@ export function useGame(layout) {
       const powerups = powerupsRef.current;
       const player = playerRef.current;
 
-      for (const laser of lasers) laser.y -= LASER.speed * dt;
+      for (const laser of lasers) laser.y -= (laser.speed || LASER.speed) * dt;
       for (const meteor of meteors) {
         meteor.y += meteor.speed * dt;
         meteor.rotation += meteor.spin * dt;
@@ -626,18 +664,30 @@ export function useGame(layout) {
       for (const drop of powerups) drop.y += drop.speed * dt;
 
       const pushMissile = (enemy, ox = 0) => {
-        const cx = enemy.x + enemy.width / 2 - MISSILE.width / 2 + ox;
+        const cx = enemy.x + enemy.width / 2 + ox;
+        const cy = enemy.y + enemy.height * 0.78;
         const pcx = player.x + player.width / 2;
-        const dx = pcx - (cx + MISSILE.width / 2);
+        const pcy = player.y + player.height / 2;
+        const dx = pcx - cx;
+        const dy = Math.max(48, pcy - cy);
+        const dist = Math.hypot(dx, dy) || 1;
+        const launch = MISSILE.launchSpeed;
+        const vx = (dx / dist) * launch * 0.4;
+        const vy = launch;
         missiles.push({
           id: uid(),
-          x: cx,
-          y: enemy.y + enemy.height * 0.7,
+          x: cx - MISSILE.width / 2,
+          y: cy,
           width: MISSILE.width,
           height: MISSILE.height,
-          speed: MISSILE.speed + Math.min(80, stage * 8),
-          vx: clamp(dx * 0.9, -140, 140),
-          homing: enemy.missileHoming || 60,
+          vx,
+          vy,
+          speed: launch,
+          maxSpeed: MISSILE.speed + Math.min(90, stage * 10),
+          accel: MISSILE.accel,
+          turn: enemy.missileHoming || 90,
+          life: 0,
+          angle: Math.atan2(vx, vy),
         });
       };
 
@@ -780,12 +830,27 @@ export function useGame(layout) {
         if (el.vx) el.x += el.vx * dt;
       }
       for (const missile of missiles) {
-        const pcx = player.x + player.width / 2;
+        missile.life = (missile.life || 0) + dt;
         const mx = missile.x + missile.width / 2;
-        const pull = (pcx - mx) * ((missile.homing || 60) / 80);
-        missile.vx = clamp((missile.vx || 0) + pull * dt * 8, -200, 200);
+        const my = missile.y + missile.height / 2;
+        const tx = player.x + player.width / 2 - mx;
+        const ty = player.y + player.height / 2 - my;
+        const want = Math.atan2(tx, ty);
+        let ang = Math.atan2(missile.vx || 0, missile.vy || 1);
+        let diff = want - ang;
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        const maxTurn = ((missile.turn || 90) * Math.PI / 180) * dt;
+        ang += clamp(diff, -maxTurn, maxTurn);
+        missile.speed = Math.min(
+          missile.maxSpeed || MISSILE.speed,
+          (missile.speed || MISSILE.launchSpeed) + (missile.accel || MISSILE.accel) * dt
+        );
+        missile.vx = Math.sin(ang) * missile.speed;
+        missile.vy = Math.cos(ang) * missile.speed;
         missile.x += missile.vx * dt;
-        missile.y += (missile.speed || MISSILE.speed) * dt;
+        missile.y += missile.vy * dt;
+        missile.angle = ang;
       }
 
       let gained = 0;
@@ -828,7 +893,7 @@ export function useGame(layout) {
           if (!aabbIntersects(lasers[i], enemy)) continue;
           lasers.splice(i, 1);
           if (enemy.isBoss) {
-            enemy.hp = (enemy.hp || 1) - 1;
+            enemy.hp = (enemy.hp || 1) - (lasers[i].damage || 1);
             if (enemy.hp <= 0) {
               dead = true;
               bossKilled = true;
@@ -876,8 +941,11 @@ export function useGame(layout) {
           break;
         }
         if (shot) continue;
-        if (isOffScreenBottom(missile, layout.height)) continue;
-        if (missile.x + missile.width < 0 || missile.x > layout.width) continue;
+        if ((missile.life || 0) > MISSILE.maxLife) continue;
+        if (missile.y > layout.height + 48) continue;
+        if (missile.y + missile.height < -48) continue;
+        if (missile.x + missile.width < -48 || missile.x > layout.width + 48)
+          continue;
         const result = resolveHazardHit(aabbIntersects(missile, player));
         if (result === "damage") {
           livesLost += 1;
@@ -894,7 +962,10 @@ export function useGame(layout) {
           playRef.current("pickup");
           if (drop.type === POWERUP_TYPE.LIFE) dispatch({ type: "grantLife" });
           else if (drop.type === POWERUP_TYPE.SHIELD)
-            dispatch({ type: "grantShield" });
+            dispatch({
+              type: "grantShield",
+              hits: getShip(shipIdRef.current).shieldMax || 1,
+            });
           else dispatch({ type: "grantWeapon" });
           continue;
         }
@@ -923,6 +994,7 @@ export function useGame(layout) {
         });
         spawnBoss(speed);
         playRef.current("levelup");
+        setStageMusicRef.current(stage, true);
       }
 
       if (bossKilled) {

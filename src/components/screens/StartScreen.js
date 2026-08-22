@@ -1,8 +1,37 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { GAME_TITLE, PLAYER, SHIPS } from "../../constants/game";
+import { GAME_TITLE, PLAYER, SHIPS, getShip } from "../../constants/game";
 import { Player } from "../entities/Player";
 import { SpaceBackground } from "../fx/SpaceBackground";
 import { Scoreboard } from "../hud/Scoreboard";
+
+const STATS = [
+  { key: "speed", label: "Hız" },
+  { key: "shield", label: "Kalkan" },
+  { key: "health", label: "Sağlık" },
+  { key: "fire", label: "Ateş" },
+];
+
+function StatRow({ label, value, color }) {
+  return (
+    <View style={styles.statRow}>
+      <Text style={styles.statLabel}>{label}</Text>
+      <View style={styles.statTrack}>
+        {Array.from({ length: 5 }, (_, i) => (
+          <View
+            key={i}
+            style={[
+              styles.statPip,
+              i < value
+                ? { backgroundColor: color }
+                : styles.statPipOff,
+            ]}
+          />
+        ))}
+      </View>
+      <Text style={[styles.statNum, { color }]}>{value}</Text>
+    </View>
+  );
+}
 
 export function StartScreen({
   highScore,
@@ -11,6 +40,8 @@ export function StartScreen({
   onSelectShip,
   onStart,
 }) {
+  const selected = getShip(shipId);
+
   return (
     <View style={styles.overlay}>
       <SpaceBackground />
@@ -19,18 +50,17 @@ export function StartScreen({
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.title}>{GAME_TITLE}</Text>
-        <Text style={styles.subtitle}>Uzay gemini seç, düşman filosunu durdur</Text>
         <Text style={styles.highScore}>En yüksek: {highScore}</Text>
 
         <Text style={styles.pickLabel}>Gemi seç</Text>
         <View style={styles.shipRow}>
           {SHIPS.map((ship) => {
-            const selected = ship.id === shipId;
+            const on = ship.id === shipId;
             return (
               <Pressable
                 key={ship.id}
                 onPress={() => onSelectShip(ship.id)}
-                style={[styles.shipCard, selected && styles.shipCardOn]}
+                style={[styles.shipCard, on && styles.shipCardOn]}
               >
                 <Player
                   preview
@@ -40,7 +70,7 @@ export function StartScreen({
                   x={0}
                   y={0}
                 />
-                <Text style={[styles.shipName, selected && styles.shipNameOn]}>
+                <Text style={[styles.shipName, on && styles.shipNameOn]}>
                   {ship.name}
                 </Text>
               </Pressable>
@@ -48,22 +78,26 @@ export function StartScreen({
           })}
         </View>
 
+        <View style={[styles.statPanel, { borderColor: selected.body + "99" }]}>
+          <Text style={[styles.statTitle, { color: selected.body }]}>
+            {selected.name}
+          </Text>
+          {STATS.map((stat) => (
+            <StatRow
+              key={stat.key}
+              label={stat.label}
+              value={selected[stat.key]}
+              color={selected.body}
+            />
+          ))}
+        </View>
+
         <Pressable
-          style={[
-            styles.button,
-            {
-              backgroundColor: (SHIPS.find((s) => s.id === shipId) || SHIPS[0])
-                .body,
-            },
-          ]}
+          style={[styles.button, { backgroundColor: selected.body }]}
           onPress={() => onStart(shipId)}
         >
           <Text style={styles.buttonText}>Oyuna Başla</Text>
         </Pressable>
-        <Text style={styles.hint}>
-          Aşama ilerledikçe boss değişir; yüksek aşamalarda füze de atar.
-          Gemiler 2–3’lü dalgalar halinde gelir.
-        </Text>
 
         <View style={styles.boardWrap}>
           <Scoreboard entries={leaderboard} />
@@ -89,16 +123,11 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     letterSpacing: 1,
   },
-  subtitle: {
-    color: "#94a3b8",
-    marginTop: 8,
-    marginBottom: 10,
-    textAlign: "center",
-  },
   highScore: {
     color: "#fbbf24",
     fontSize: 16,
-    marginBottom: 12,
+    marginTop: 10,
+    marginBottom: 14,
     fontWeight: "700",
   },
   boardWrap: {
@@ -114,37 +143,12 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     marginBottom: 8,
   },
-  diffRow: {
-    flexDirection: "row",
-    gap: 8,
-    marginBottom: 18,
-  },
-  diffBtn: {
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: "rgba(148,163,184,0.3)",
-    backgroundColor: "rgba(15,23,42,0.55)",
-  },
-  diffBtnOn: {
-    borderColor: "#fbbf24",
-    backgroundColor: "rgba(251, 191, 36, 0.18)",
-  },
-  diffText: {
-    color: "#94a3b8",
-    fontWeight: "700",
-    fontSize: 13,
-  },
-  diffTextOn: {
-    color: "#fde68a",
-  },
   shipRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "center",
     gap: 10,
-    marginBottom: 22,
+    marginBottom: 14,
     maxWidth: 420,
   },
   shipCard: {
@@ -170,6 +174,53 @@ const styles = StyleSheet.create({
   shipNameOn: {
     color: "#f8fafc",
   },
+  statPanel: {
+    width: "100%",
+    maxWidth: 320,
+    marginBottom: 18,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    backgroundColor: "rgba(2, 6, 23, 0.72)",
+  },
+  statTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+    letterSpacing: 0.6,
+    marginBottom: 8,
+  },
+  statRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 6,
+  },
+  statLabel: {
+    width: 58,
+    color: "#94a3b8",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  statTrack: {
+    flex: 1,
+    flexDirection: "row",
+    gap: 4,
+  },
+  statPip: {
+    flex: 1,
+    height: 8,
+    borderRadius: 3,
+  },
+  statPipOff: {
+    backgroundColor: "rgba(51, 65, 85, 0.7)",
+  },
+  statNum: {
+    width: 14,
+    fontSize: 12,
+    fontWeight: "800",
+    textAlign: "right",
+  },
   button: {
     paddingVertical: 14,
     paddingHorizontal: 32,
@@ -179,12 +230,5 @@ const styles = StyleSheet.create({
     color: "#0f172a",
     fontSize: 18,
     fontWeight: "800",
-  },
-  hint: {
-    color: "#64748b",
-    marginTop: 18,
-    textAlign: "center",
-    maxWidth: 340,
-    lineHeight: 20,
   },
 });

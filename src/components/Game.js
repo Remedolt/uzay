@@ -82,6 +82,7 @@ export function Game() {
               spawned={game.hud.spawned}
               quota={game.hud.quota}
               shielded={game.hud.shielded}
+              shieldHp={game.hud.shieldHp}
               weaponLevel={game.hud.weaponLevel}
             />
             <StageBanner

@@ -11,12 +11,27 @@ const SFX = {
   pickup: require("../../assets/sfx/pickup.wav"),
 };
 
-const MUSIC = require("../../assets/sfx/music.wav");
+const MUSIC_TRACKS = [
+  require("../../assets/sfx/music-1.wav"),
+  require("../../assets/sfx/music-2.wav"),
+  require("../../assets/sfx/music-3.wav"),
+  require("../../assets/sfx/music-4.wav"),
+  require("../../assets/sfx/music-5.wav"),
+  require("../../assets/sfx/music-6.wav"),
+];
+
 const MUSIC_VOLUME = 0.12;
+
+function trackIndex(stage) {
+  const n = MUSIC_TRACKS.length;
+  return ((Math.max(1, stage || 1) - 1) % n + n) % n;
+}
 
 export function useSfx() {
   const soundsRef = useRef({});
   const musicRef = useRef(null);
+  const tracksRef = useRef([]);
+  const indexRef = useRef(0);
   const readyRef = useRef(false);
 
   useEffect(() => {
@@ -39,19 +54,25 @@ export function useSfx() {
           })
         );
 
-        const { sound: music } = await Audio.Sound.createAsync(MUSIC, {
-          volume: MUSIC_VOLUME,
-          isLooping: true,
-        });
+        const tracks = await Promise.all(
+          MUSIC_TRACKS.map(async (source) => {
+            const { sound } = await Audio.Sound.createAsync(source, {
+              volume: MUSIC_VOLUME,
+              isLooping: true,
+            });
+            return sound;
+          })
+        );
 
         if (!cancelled) {
           soundsRef.current = loaded;
-          musicRef.current = music;
+          tracksRef.current = tracks;
+          musicRef.current = tracks[0];
           readyRef.current = true;
         } else {
           await Promise.all([
             ...Object.values(loaded).map((s) => s.unloadAsync()),
-            music.unloadAsync(),
+            ...tracks.map((s) => s.unloadAsync()),
           ]);
         }
       } catch {
@@ -64,8 +85,9 @@ export function useSfx() {
       Object.values(soundsRef.current).forEach((s) => {
         s.unloadAsync?.();
       });
-      musicRef.current?.unloadAsync?.();
+      tracksRef.current.forEach((s) => s.unloadAsync?.());
       soundsRef.current = {};
+      tracksRef.current = [];
       musicRef.current = null;
       readyRef.current = false;
     };
@@ -81,33 +103,64 @@ export function useSfx() {
     }
   }, []);
 
-  const startMusic = useCallback(async () => {
-    const music = musicRef.current;
-    if (!music) return;
-    try {
-      await music.setVolumeAsync(MUSIC_VOLUME);
-      const status = await music.getStatusAsync();
-      if (status.isLoaded && !status.isPlaying) {
-        await music.playAsync();
-      }
-    } catch {
-      // ignore
-    }
-  }, []);
-
   const stopMusic = useCallback(async () => {
-    const music = musicRef.current;
-    if (!music) return;
+    const tracks = tracksRef.current;
+    await Promise.all(
+      tracks.map(async (music) => {
+        try {
+          const status = await music.getStatusAsync();
+          if (status.isLoaded && status.isPlaying) {
+            await music.stopAsync();
+            await music.setPositionAsync(0);
+          }
+        } catch {
+          // ignore
+        }
+      })
+    );
+  }, []);
+
+  const setStageMusic = useCallback(async (stage, isBoss = false) => {
+    const tracks = tracksRef.current;
+    if (!tracks.length) return;
+    const idx = trackIndex(stage);
+    const next = tracks[idx];
+    const prev = musicRef.current;
+    const rate = isBoss ? 1.12 : 1;
+
     try {
-      const status = await music.getStatusAsync();
-      if (status.isLoaded) {
-        await music.stopAsync();
-        await music.setPositionAsync(0);
+      if (prev && prev !== next) {
+        const prevStatus = await prev.getStatusAsync();
+        if (prevStatus.isLoaded && prevStatus.isPlaying) {
+          await prev.stopAsync();
+          await prev.setPositionAsync(0);
+        }
+      }
+
+      musicRef.current = next;
+      indexRef.current = idx;
+      const status = await next.getStatusAsync();
+      if (!status.isLoaded) return;
+      await next.setVolumeAsync(MUSIC_VOLUME);
+      try {
+        await next.setRateAsync(rate, !isBoss);
+      } catch {
+        // web rate desteği yoksa devam
+      }
+      if (!status.isPlaying) {
+        await next.playAsync();
       }
     } catch {
       // ignore
     }
   }, []);
 
-  return { play, startMusic, stopMusic };
+  const startMusic = useCallback(
+    async (stage = 1, isBoss = false) => {
+      await setStageMusic(stage, isBoss);
+    },
+    [setStageMusic]
+  );
+
+  return { play, startMusic, stopMusic, setStageMusic };
 }

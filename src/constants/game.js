@@ -72,9 +72,12 @@ export const BOSS = {
 };
 
 export const MISSILE = {
-  width: 12,
-  height: 26,
-  speed: 200,
+  width: 11,
+  height: 30,
+  speed: 210,
+  accel: 240,
+  launchSpeed: 92,
+  maxLife: 6.5,
 };
 
 /** Aşama dalgaları — kota kadar gemi, sonra o aşamanın boss’u */
@@ -90,7 +93,7 @@ export const STAGES = [
     bossHp: 16,
     missileMs: 3200,
     missileCount: 1,
-    missileHoming: 40,
+    missileHoming: 88,
   },
   {
     name: "Pusula",
@@ -103,7 +106,7 @@ export const STAGES = [
     bossHp: 22,
     missileMs: 2400,
     missileCount: 1,
-    missileHoming: 80,
+    missileHoming: 110,
   },
   {
     name: "Kuşatma",
@@ -116,7 +119,7 @@ export const STAGES = [
     bossHp: 28,
     missileMs: 1900,
     missileCount: 2,
-    missileHoming: 100,
+    missileHoming: 135,
   },
   {
     name: "Kor Ateş",
@@ -129,7 +132,7 @@ export const STAGES = [
     bossHp: 34,
     missileMs: 1500,
     missileCount: 2,
-    missileHoming: 130,
+    missileHoming: 160,
   },
   {
     name: "Mor Fırtına",
@@ -142,7 +145,7 @@ export const STAGES = [
     bossHp: 40,
     missileMs: 1200,
     missileCount: 3,
-    missileHoming: 160,
+    missileHoming: 190,
   },
   {
     name: "Çelik Hat",
@@ -155,7 +158,7 @@ export const STAGES = [
     bossHp: 48,
     missileMs: 980,
     missileCount: 3,
-    missileHoming: 190,
+    missileHoming: 230,
   },
 ];
 
@@ -246,6 +249,17 @@ export const SHIPS = [
     tip: "#e0f2fe",
     engine: "#67e8f9",
     laser: "#7dd3fc",
+    speed: 5,
+    shield: 2,
+    health: 3,
+    fire: 3,
+    moveSpeed: 980,
+    lives: 3,
+    startShield: false,
+    shieldMax: 1,
+    fireMul: 0.96,
+    laserSpeedMul: 1.12,
+    damage: 1,
   },
   {
     id: "ember",
@@ -255,6 +269,17 @@ export const SHIPS = [
     tip: "#ffedd5",
     engine: "#fb923c",
     laser: "#fdba74",
+    speed: 3,
+    shield: 2,
+    health: 2,
+    fire: 5,
+    moveSpeed: 580,
+    lives: 2,
+    startShield: false,
+    shieldMax: 1,
+    fireMul: 0.7,
+    laserSpeedMul: 1.32,
+    damage: 2,
   },
   {
     id: "violet",
@@ -264,6 +289,17 @@ export const SHIPS = [
     tip: "#ede9fe",
     engine: "#c4b5fd",
     laser: "#ddd6fe",
+    speed: 4,
+    shield: 1,
+    health: 2,
+    fire: 4,
+    moveSpeed: 780,
+    lives: 2,
+    startShield: false,
+    shieldMax: 1,
+    fireMul: 0.8,
+    laserSpeedMul: 1.22,
+    damage: 1,
   },
   {
     id: "jade",
@@ -273,8 +309,23 @@ export const SHIPS = [
     tip: "#d1fae5",
     engine: "#6ee7b7",
     laser: "#a7f3d0",
+    speed: 2,
+    shield: 5,
+    health: 5,
+    fire: 2,
+    moveSpeed: 420,
+    lives: 5,
+    startShield: true,
+    shieldMax: 2,
+    fireMul: 1.28,
+    laserSpeedMul: 0.9,
+    damage: 1,
   },
 ];
+
+export function getShip(id) {
+  return SHIPS.find((s) => s.id === id) || SHIPS[0];
+}
 
 export function levelFromScore(score) {
   return Math.floor(score / SCORE_PER_LEVEL) + 1;
