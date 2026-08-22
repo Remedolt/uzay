@@ -18,6 +18,15 @@ export const PLAYER = {
   width: 64,
   height: 74,
   bottom: 24,
+  /** Dokunmada gemi parmağın ~1.5–2 cm üstünde kalsın */
+  touchOffsetY: 96,
+};
+
+export const ULTIMATE = {
+  perEnemy: 0.055,
+  perMeteor: 0.02,
+  perBoss: 0.22,
+  empBossDamage: 14,
 };
 
 export const LASER = {

@@ -17,6 +17,7 @@ import {
   POWERUP_TYPE,
   SCREEN,
   SHIPS,
+  ULTIMATE,
   WEAPON,
   getShip,
   stageConfig,
@@ -57,6 +58,7 @@ const initialHud = {
   scoreSaved: false,
   spawned: 0,
   quota: stageConfig(1).enemyQuota,
+  ultimate: 0,
 };
 
 function pickPowerUpType() {
@@ -93,11 +95,19 @@ function hudReducer(state, action) {
         scoreSaved: false,
         spawned: 0,
         quota: stageConfig(1).enemyQuota,
+        ultimate: 0,
       };
     case "score":
       return {
         ...state,
         score: action.score,
+        ultimate:
+          action.ultimate == null ? state.ultimate : action.ultimate,
+      };
+    case "ultimate":
+      return {
+        ...state,
+        ultimate: Math.max(0, Math.min(1, action.value)),
       };
     case "wave":
       return {
@@ -168,6 +178,7 @@ function hudReducer(state, action) {
         highScore: Math.max(state.highScore, action.score),
         level: action.stage || state.stage || 1,
         stage: action.stage || state.stage || 1,
+        ultimate: 0,
       };
     case "scoreSaved":
       return {
@@ -192,6 +203,7 @@ function hudReducer(state, action) {
         level: 1,
         spawned: 0,
         quota: stageConfig(1).enemyQuota,
+        ultimate: 0,
       };
     default:
       return state;
@@ -202,6 +214,10 @@ let nextId = 1;
 function uid() {
   nextId += 1;
   return nextId;
+}
+
+function playerRestY(layout) {
+  return layout.height - PLAYER.height - PLAYER.bottom;
 }
 
 export function useGame(layout) {
@@ -244,6 +260,10 @@ export function useGame(layout) {
   const bannerAccRef = useRef(0);
   const clearAccRef = useRef(0);
   const iFrameRef = useRef(0);
+  const ultimateRef = useRef(0);
+  const empPendingRef = useRef(false);
+  const empBurstRef = useRef({ t: 0, x: 0, y: 0 });
+  const shakeRef = useRef({ t: 0, x: 0, y: 0 });
   const [, setRenderTick] = useReducer((n) => n + 1, 0);
 
   useEffect(() => {
@@ -260,7 +280,8 @@ export function useGame(layout) {
     if (!layout.width) return;
     playerRef.current.x = (layout.width - PLAYER.width) / 2;
     playerRef.current.targetX = playerRef.current.x;
-    playerRef.current.y = layout.height - PLAYER.height - PLAYER.bottom;
+    playerRef.current.y = playerRestY(layout);
+    playerRef.current.targetY = playerRef.current.y;
   }, [layout.width, layout.height]);
 
   const setShipId = useCallback((id) => {
@@ -292,11 +313,16 @@ export function useGame(layout) {
     bannerAccRef.current = 2200;
     clearAccRef.current = 0;
     iFrameRef.current = 0;
+    ultimateRef.current = 0;
+    empPendingRef.current = false;
+    empBurstRef.current = { t: 0, x: 0, y: 0 };
+    shakeRef.current = { t: 0, x: 0, y: 0 };
     if (layout.width) {
       const x = (layout.width - PLAYER.width) / 2;
       playerRef.current.x = x;
       playerRef.current.targetX = x;
-      playerRef.current.y = layout.height - PLAYER.height - PLAYER.bottom;
+      playerRef.current.y = playerRestY(layout);
+      playerRef.current.targetY = playerRef.current.y;
     }
   }, [layout.width, layout.height]);
 
@@ -323,16 +349,30 @@ export function useGame(layout) {
   }, [resetWorld, stopMusic]);
 
   const movePlayerTo = useCallback(
-    (localX) => {
+    (localX, localY, fromTouch = false) => {
       const half = PLAYER.width / 2;
       playerRef.current.targetX = clamp(
         localX - half,
         0,
         Math.max(0, layout.width - PLAYER.width)
       );
+      if (typeof localY !== "number" || !layout.height) return;
+      const offset = fromTouch ? PLAYER.touchOffsetY : 0;
+      const minY = 92;
+      const maxY = playerRestY(layout);
+      playerRef.current.targetY = clamp(
+        localY - PLAYER.height / 2 - offset,
+        minY,
+        maxY
+      );
     },
-    [layout.width]
+    [layout.width, layout.height]
   );
+
+  const fireUltimate = useCallback(() => {
+    if (ultimateRef.current < 1) return;
+    empPendingRef.current = true;
+  }, []);
 
   const spawnLaser = useCallback(() => {
     const p = playerRef.current;
@@ -551,18 +591,48 @@ export function useGame(layout) {
 
       const ship = getShip(shipIdRef.current);
       const maxX = Math.max(0, layout.width - PLAYER.width);
+      const maxY = playerRestY(layout);
+      const minY = 92;
+      const phase = phaseRef.current;
+
+      const moveStep = (ship.moveSpeed || 700) * dt;
       const targetX = clamp(playerRef.current.targetX ?? playerRef.current.x, 0, maxX);
-      const step = (ship.moveSpeed || 700) * dt;
+      const targetY = clamp(
+        playerRef.current.targetY ?? playerRef.current.y,
+        minY,
+        maxY
+      );
       const dx = targetX - playerRef.current.x;
+      const dy = targetY - playerRef.current.y;
       playerRef.current.x = clamp(
-        playerRef.current.x + clamp(dx, -step, step),
+        playerRef.current.x + clamp(dx, -moveStep, moveStep),
         0,
         maxX
       );
+      playerRef.current.y = clamp(
+        playerRef.current.y + clamp(dy, -moveStep, moveStep),
+        minY,
+        maxY
+      );
+
+      if (empBurstRef.current.t > 0) {
+        empBurstRef.current.t = Math.min(1, empBurstRef.current.t + dt * 1.85);
+        if (empBurstRef.current.t >= 1) empBurstRef.current.t = 0;
+      }
+      if (shakeRef.current.t > 0) {
+        shakeRef.current.t -= dt;
+        const mag = Math.max(0, shakeRef.current.t) * 42;
+        shakeRef.current.x = (Math.random() - 0.5) * mag;
+        shakeRef.current.y = (Math.random() - 0.5) * mag;
+        if (shakeRef.current.t <= 0) {
+          shakeRef.current.x = 0;
+          shakeRef.current.y = 0;
+        }
+      }
 
       if (bannerAccRef.current > 0) {
         bannerAccRef.current -= dt * 1000;
-        if (bannerAccRef.current <= 0 && phaseRef.current !== "clear") {
+        if (bannerAccRef.current <= 0 && phase !== "clear") {
           dispatch({ type: "banner", banner: "", bannerSub: "" });
         }
       }
@@ -578,8 +648,6 @@ export function useGame(layout) {
         fireAccRef.current = 0;
         spawnLaser();
       }
-
-      const phase = phaseRef.current;
 
       spawnAccRef.current += dt * 1000;
       const meteorSpawnMs = spawnMs * 1.8;
@@ -853,6 +921,23 @@ export function useGame(layout) {
         missile.angle = ang;
       }
 
+      let empThisTick = false;
+      if (empPendingRef.current) {
+        empPendingRef.current = false;
+        empThisTick = true;
+        ultimateRef.current = 0;
+        dispatch({ type: "ultimate", value: 0 });
+        empBurstRef.current = {
+          t: 0.02,
+          x: player.x + player.width / 2,
+          y: player.y + player.height / 2,
+        };
+        shakeRef.current.t = 0.42;
+        playRef.current("explode");
+        enemyLasers.length = 0;
+        missiles.length = 0;
+      }
+
       let gained = 0;
       let livesLost = 0;
       let destroyedCount = 0;
@@ -875,10 +960,20 @@ export function useGame(layout) {
             destroyedCount += 1;
             gained += Math.round(POINTS_PER_METEOR * scoreMul);
             spawnPowerUp(meteor, POWERUP.dropChance);
+            ultimateRef.current = Math.min(
+              1,
+              ultimateRef.current + ULTIMATE.perMeteor
+            );
             break;
           }
         }
         if (destroyed) continue;
+
+        if (empThisTick) {
+          destroyedCount += 1;
+          gained += Math.round(POINTS_PER_METEOR * scoreMul);
+          continue;
+        }
 
         if (isOffScreenBottom(meteor, layout.height)) continue;
         const result = resolveHazardHit(aabbIntersects(hitbox, player));
@@ -891,9 +986,36 @@ export function useGame(layout) {
         let dead = false;
         for (let i = lasers.length - 1; i >= 0; i -= 1) {
           if (!aabbIntersects(lasers[i], enemy)) continue;
+          const shot = lasers[i];
           lasers.splice(i, 1);
           if (enemy.isBoss) {
-            enemy.hp = (enemy.hp || 1) - (lasers[i].damage || 1);
+            enemy.hp = (enemy.hp || 1) - (shot.damage || 1);
+            if (enemy.hp <= 0) {
+              dead = true;
+              bossKilled = true;
+              destroyedCount += 1;
+              gained += Math.round(POINTS_PER_BOSS * scoreMul);
+              spawnPowerUp(enemy, 1);
+              ultimateRef.current = Math.min(
+                1,
+                ultimateRef.current + ULTIMATE.perBoss
+              );
+            }
+          } else {
+            dead = true;
+            destroyedCount += 1;
+            gained += Math.round(POINTS_PER_ENEMY * scoreMul);
+            spawnPowerUp(enemy, ENEMY.dropChance);
+            ultimateRef.current = Math.min(
+              1,
+              ultimateRef.current + ULTIMATE.perEnemy
+            );
+          }
+          break;
+        }
+        if (!dead && empThisTick) {
+          if (enemy.isBoss) {
+            enemy.hp = (enemy.hp || 1) - ULTIMATE.empBossDamage;
             if (enemy.hp <= 0) {
               dead = true;
               bossKilled = true;
@@ -907,7 +1029,6 @@ export function useGame(layout) {
             gained += Math.round(POINTS_PER_ENEMY * scoreMul);
             spawnPowerUp(enemy, ENEMY.dropChance);
           }
-          break;
         }
         if (dead) continue;
 
@@ -989,8 +1110,8 @@ export function useGame(layout) {
         dispatch({
           type: "phase",
           phase: "boss",
-          banner: cfg.bossName || "BOSS",
-          bannerSub: `${cfg.name} bossu`,
+          banner: cfg.bossName || "PATRON",
+          bannerSub: `${cfg.name} patronu`,
         });
         spawnBoss(speed);
         playRef.current("levelup");
@@ -1015,7 +1136,15 @@ export function useGame(layout) {
       if (destroyedCount > 0) playRef.current("explode");
 
       if (gained > 0) {
-        dispatch({ type: "score", score: score + gained });
+        dispatch({
+          type: "score",
+          score: score + gained,
+          ultimate: ultimateRef.current,
+        });
+      } else if (
+        Math.abs((hudRef.current.ultimate || 0) - ultimateRef.current) > 0.001
+      ) {
+        dispatch({ type: "ultimate", value: ultimateRef.current });
       }
 
       if (livesLost > 0) {
@@ -1062,9 +1191,12 @@ export function useGame(layout) {
     missiles: missilesRef.current,
     powerups: powerupsRef.current,
     scrollY: scrollRef.current,
+    empBurst: empBurstRef.current,
+    shake: { x: shakeRef.current.x, y: shakeRef.current.y },
     startGame,
     goToStart,
     movePlayerTo,
+    fireUltimate,
     fire: spawnLaser,
   };
 }

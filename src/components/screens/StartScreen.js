@@ -52,7 +52,7 @@ export function StartScreen({
         <Text style={styles.title}>{GAME_TITLE}</Text>
         <Text style={styles.highScore}>En yüksek: {highScore}</Text>
 
-        <Text style={styles.pickLabel}>Gemi seç</Text>
+        <Text style={styles.pickLabel}>GEMİ SEÇ</Text>
         <View style={styles.shipRow}>
           {SHIPS.map((ship) => {
             const on = ship.id === shipId;
@@ -140,7 +140,6 @@ const styles = StyleSheet.create({
     color: "#cbd5e1",
     fontSize: 13,
     letterSpacing: 1,
-    textTransform: "uppercase",
     marginBottom: 8,
   },
   shipRow: {

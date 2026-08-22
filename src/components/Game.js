@@ -10,9 +10,11 @@ import { EnemyShip } from "./entities/EnemyShip";
 import { EnemyLaser } from "./entities/EnemyLaser";
 import { Missile } from "./entities/Missile";
 import { PowerUp } from "./entities/PowerUp";
+import { EmpBurst } from "./fx/EmpBurst";
 import { SpaceBackground } from "./fx/SpaceBackground";
 import { StageBanner } from "./fx/StageBanner";
 import { Hud } from "./hud/Hud";
+import { UltimateButton } from "./hud/UltimateButton";
 import { StartScreen } from "./screens/StartScreen";
 import { GameOverScreen } from "./screens/GameOverScreen";
 
@@ -20,18 +22,22 @@ export function Game() {
   const [layout, setLayout] = useState({ width: 0, height: 0 });
   const arenaRef = useRef(null);
   const game = useGame(layout);
+  const playing = game.hud.screen === SCREEN.PLAYING;
+  const shake = game.shake || { x: 0, y: 0 };
 
-  const moveFromLocalX = useCallback(
-    (localX) => {
-      if (game.hud.screen === SCREEN.PLAYING) game.movePlayerTo(localX);
+  const moveFromPointer = useCallback(
+    (localX, localY, fromTouch) => {
+      if (game.hud.screen === SCREEN.PLAYING) {
+        game.movePlayerTo(localX, localY, fromTouch);
+      }
     },
     [game]
   );
 
   const pan = Gesture.Pan()
     .runOnJS(true)
-    .onBegin((e) => moveFromLocalX(e.x))
-    .onChange((e) => moveFromLocalX(e.x));
+    .onBegin((e) => moveFromPointer(e.x, e.y, true))
+    .onChange((e) => moveFromPointer(e.x, e.y, true));
 
   const tap = Gesture.Tap().runOnJS(true).onEnd(() => {
     if (game.hud.screen === SCREEN.PLAYING) game.fire();
@@ -45,95 +51,122 @@ export function Game() {
       const rect = target.getBoundingClientRect?.();
       if (!rect) return;
       const clientX = e.nativeEvent?.clientX ?? e.clientX;
+      const clientY = e.nativeEvent?.clientY ?? e.clientY;
       if (typeof clientX !== "number") return;
-      moveFromLocalX(clientX - rect.left);
+      const touch = e.pointerType === "touch" || e.nativeEvent?.pointerType === "touch";
+      moveFromPointer(clientX - rect.left, clientY - rect.top, touch);
     },
-    [game.hud.screen, moveFromLocalX]
+    [game.hud.screen, moveFromPointer]
   );
 
   return (
-    <GestureDetector gesture={Gesture.Race(pan, tap)}>
-      <View
-        ref={arenaRef}
-        style={styles.arena}
-        onLayout={(e) => setLayout(e.nativeEvent.layout)}
-        {...(Platform.OS === "web"
-          ? {
-              onMouseMove: onWebPointerMove,
-              onMouseDown: onWebPointerMove,
-            }
-          : {})}
-      >
-        <SpaceBackground
-          scrollY={Math.floor(game.scrollY / 3)}
-          level={game.hud.stage || game.hud.level}
-          score={game.hud.score}
-          playing={game.hud.screen === SCREEN.PLAYING}
-        />
-
-        {game.hud.screen === SCREEN.PLAYING && (
-          <>
-            <Hud
-              score={game.hud.score}
-              lives={game.hud.lives}
-              level={game.hud.level}
-              stage={game.hud.stage}
-              phase={game.hud.phase}
-              spawned={game.hud.spawned}
-              quota={game.hud.quota}
-              shielded={game.hud.shielded}
-              shieldHp={game.hud.shieldHp}
-              weaponLevel={game.hud.weaponLevel}
-            />
-            <StageBanner
-              title={game.hud.banner}
-              subtitle={game.hud.bannerSub}
-            />
-            {game.lasers.map((laser) => (
-              <Laser key={laser.id} {...laser} />
-            ))}
-            {game.meteors.map((meteor) => (
-              <Meteor key={meteor.id} {...meteor} />
-            ))}
-            {game.enemies.map((enemy) => (
-              <EnemyShip key={enemy.id} {...enemy} />
-            ))}
-            {game.enemyLasers.map((laser) => (
-              <EnemyLaser key={laser.id} {...laser} />
-            ))}
-            {(game.missiles || []).map((missile) => (
-              <Missile key={missile.id} {...missile} />
-            ))}
-            {game.powerups.map((drop) => (
-              <PowerUp key={drop.id} {...drop} />
-            ))}
-            <Player {...game.player} />
-          </>
-        )}
-
-        {game.hud.screen === SCREEN.START && (
-          <StartScreen
-            highScore={game.hud.highScore}
-            leaderboard={game.hud.leaderboard}
-            shipId={game.shipId}
-            onSelectShip={game.setShipId}
-            onStart={game.startGame}
-          />
-        )}
-
-        {game.hud.screen === SCREEN.GAME_OVER && (
-          <GameOverScreen
-            score={game.hud.score}
+    <View
+      ref={arenaRef}
+      style={styles.arena}
+      onLayout={(e) => setLayout(e.nativeEvent.layout)}
+    >
+      <GestureDetector gesture={Gesture.Race(pan, tap)}>
+        <View
+          style={[
+            styles.playfield,
+            { transform: [{ translateX: shake.x }, { translateY: shake.y }] },
+          ]}
+          {...(Platform.OS === "web"
+            ? {
+                onMouseMove: onWebPointerMove,
+                onMouseDown: onWebPointerMove,
+                onTouchMove: (e) => {
+                  const t = e.nativeEvent?.touches?.[0] || e.nativeEvent;
+                  const rect = e.currentTarget.getBoundingClientRect?.();
+                  if (!rect || typeof t.clientX !== "number") return;
+                  moveFromPointer(
+                    t.clientX - rect.left,
+                    t.clientY - rect.top,
+                    true
+                  );
+                },
+              }
+            : {})}
+        >
+          <SpaceBackground
+            scrollY={Math.floor(game.scrollY / 3)}
             level={game.hud.stage || game.hud.level}
-            leaderboard={game.hud.leaderboard}
-            scoreSaved={game.hud.scoreSaved}
-            defaultName={game.playerName}
-            onSave={game.saveRun}
-            onReplay={game.goToStart}
+            score={game.hud.score}
+            playing={playing}
           />
-        )}
-      </View>
-    </GestureDetector>
+
+          {playing && (
+            <>
+              <Hud
+                score={game.hud.score}
+                lives={game.hud.lives}
+                level={game.hud.level}
+                stage={game.hud.stage}
+                phase={game.hud.phase}
+                spawned={game.hud.spawned}
+                quota={game.hud.quota}
+                shielded={game.hud.shielded}
+                shieldHp={game.hud.shieldHp}
+                weaponLevel={game.hud.weaponLevel}
+              />
+              <StageBanner
+                title={game.hud.banner}
+                subtitle={game.hud.bannerSub}
+              />
+              {game.lasers.map((laser) => (
+                <Laser key={laser.id} {...laser} />
+              ))}
+              {game.meteors.map((meteor) => (
+                <Meteor key={meteor.id} {...meteor} />
+              ))}
+              {game.enemies.map((enemy) => (
+                <EnemyShip key={enemy.id} {...enemy} />
+              ))}
+              {game.enemyLasers.map((laser) => (
+                <EnemyLaser key={laser.id} {...laser} />
+              ))}
+              {(game.missiles || []).map((missile) => (
+                <Missile key={missile.id} {...missile} />
+              ))}
+              {game.powerups.map((drop) => (
+                <PowerUp key={drop.id} {...drop} />
+              ))}
+              <Player {...game.player} />
+              <EmpBurst burst={game.empBurst} />
+            </>
+          )}
+        </View>
+      </GestureDetector>
+
+      {playing ? (
+        <UltimateButton
+          charge={game.hud.ultimate || 0}
+          onPress={game.fireUltimate}
+        />
+      ) : null}
+
+      {game.hud.screen === SCREEN.START && (
+        <StartScreen
+          highScore={game.hud.highScore}
+          leaderboard={game.hud.leaderboard}
+          shipId={game.shipId}
+          onSelectShip={game.setShipId}
+          onStart={game.startGame}
+        />
+      )}
+
+      {game.hud.screen === SCREEN.GAME_OVER && (
+        <GameOverScreen
+          score={game.hud.score}
+          level={game.hud.stage || game.hud.level}
+          leaderboard={game.hud.leaderboard}
+          scoreSaved={game.hud.scoreSaved}
+          defaultName={game.playerName}
+          onSave={game.saveRun}
+          onReplay={game.goToStart}
+        />
+      )}
+    </View>
   );
 }
 
@@ -146,5 +179,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#030712",
     overflow: "hidden",
     cursor: Platform.OS === "web" ? "crosshair" : undefined,
+  },
+  playfield: {
+    flex: 1,
+    width: "100%",
+    height: "100%",
   },
 });

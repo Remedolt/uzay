@@ -47,7 +47,7 @@ export function Hud({
   const waveRatio = quota > 0 ? Math.max(0, Math.min(1, spawned / quota)) : 1;
   const progressText =
     phase === "boss"
-      ? "Boss"
+      ? "Patron"
       : phase === "clear"
         ? "Tamam"
         : `${Math.min(spawned, quota)}/${quota}`;
