@@ -10,6 +10,7 @@ import { Laser } from "./entities/Laser";
 import { EnemyShip } from "./entities/EnemyShip";
 import { EnemyLaser } from "./entities/EnemyLaser";
 import { Missile } from "./entities/Missile";
+import { PlasmaBall } from "./entities/PlasmaBall";
 import { PowerUp } from "./entities/PowerUp";
 import { Drone } from "./entities/Drone";
 import { EmpBurst } from "./fx/EmpBurst";
@@ -173,6 +174,7 @@ export function Game() {
               <StageBanner
                 title={game.hud.banner}
                 subtitle={game.hud.bannerSub}
+                kind={game.hud.bannerKind}
               />
               {game.lasers.map((laser) => (
                 <Laser key={laser.id} {...laser} />
@@ -186,9 +188,13 @@ export function Game() {
               {game.enemyLasers.map((laser) => (
                 <EnemyLaser key={laser.id} {...laser} />
               ))}
-              {(game.missiles || []).map((missile) => (
-                <Missile key={missile.id} {...missile} />
-              ))}
+              {(game.missiles || []).map((missile) =>
+                missile.kind === "plasma" ? (
+                  <PlasmaBall key={missile.id} {...missile} />
+                ) : (
+                  <Missile key={missile.id} {...missile} />
+                )
+              )}
               {game.powerups.map((drop) => (
                 <PowerUp key={drop.id} {...drop} />
               ))}

@@ -75,6 +75,7 @@ export const ENEMY = {
   variantCount: 8,
   groupGapMs: 340,
   shieldChance: 0.08,
+  plasmaChance: 0.16,
 };
 
 export const RAIDER = {
@@ -118,6 +119,18 @@ export const PLAYER_ROCKET = {
   damage: 4,
   turn: 260,
   maxAmmo: 6,
+};
+
+export const PLASMA = {
+  size: 22,
+  speed: 168,
+  homing: 48,
+  maxLife: 5.4,
+  playerSize: 20,
+  playerSpeed: 290,
+  playerTurn: 150,
+  playerDamage: 5,
+  playerMaxLife: 4.6,
 };
 
 export const STAGES = [

@@ -10,6 +10,7 @@ import {
   MAX_LIVES,
   METEOR,
   MISSILE,
+  PLASMA,
   PLAYER,
   PLAYER_ROCKET,
   POINTS_PER_BOSS,
@@ -56,6 +57,7 @@ const initialHud = {
   phase: "wave",
   banner: "",
   bannerSub: "",
+  bannerKind: "",
   shielded: false,
   shieldHp: 0,
   weaponLevel: 0,
@@ -99,6 +101,7 @@ function hudReducer(state, action) {
         phase: "wave",
         banner: "AŞAMA 1",
         bannerSub: stageConfig(1).name,
+        bannerKind: "",
         shielded: !!action.shielded,
         shieldHp: action.shieldHp || 0,
         weaponLevel: 0,
@@ -135,6 +138,7 @@ function hudReducer(state, action) {
         ...state,
         banner: action.banner || "",
         bannerSub: action.bannerSub || "",
+        bannerKind: action.bannerKind || "",
       };
     case "phase":
       return {
@@ -142,6 +146,7 @@ function hudReducer(state, action) {
         phase: action.phase,
         banner: action.banner ?? state.banner,
         bannerSub: action.bannerSub ?? state.bannerSub,
+        bannerKind: action.bannerKind ?? state.bannerKind,
       };
     case "stage":
       return {
@@ -152,6 +157,7 @@ function hudReducer(state, action) {
         phase: action.phase || "wave",
         banner: action.banner || "",
         bannerSub: action.bannerSub || "",
+        bannerKind: action.bannerKind || "",
         spawned: 0,
         quota: action.quota ?? state.quota,
       };
@@ -244,6 +250,7 @@ function hudReducer(state, action) {
         phase: "wave",
         banner: "",
         bannerSub: "",
+        bannerKind: "",
         stage: 1,
         stageName: stageConfig(1).name,
         level: 1,
@@ -269,9 +276,10 @@ function uid() {
   return nextId;
 }
 
-function fireBossPattern(enemy, player, pushEnemyLaser, pushMissile) {
+function fireBossPattern(enemy, player, pushEnemyLaser, pushMissile, pushPlasma) {
   const kind = enemy.attackKind ?? enemy.bossVariant ?? enemy.variant ?? 0;
   const dx = player.x + player.width / 2 - (enemy.x + enemy.width / 2);
+  const plasma = enemy.usesPlasma || kind % 3 === 2;
   switch (kind % 9) {
     case 1:
       pushEnemyLaser(enemy, -14, clamp(dx * 0.6, -80, 80));
@@ -279,37 +287,37 @@ function fireBossPattern(enemy, player, pushEnemyLaser, pushMissile) {
       pushEnemyLaser(enemy, 0, clamp(dx * 1.3, -180, 180));
       break;
     case 2:
-      enemy.burstLeft = 4;
-      pushEnemyLaser(enemy, -18);
-      pushEnemyLaser(enemy, 18);
+      enemy.burstLeft = 3;
+      enemy.burstKind = "plasma";
+      pushPlasma(enemy, -16);
+      pushPlasma(enemy, 16);
       break;
     case 3:
       pushEnemyLaser(enemy, -22, -70);
-      pushEnemyLaser(enemy, 0, 0);
+      pushPlasma(enemy, 0);
       pushEnemyLaser(enemy, 22, 70);
       pushMissile(enemy);
       break;
     case 4:
       enemy.burstLeft = 5;
+      enemy.burstKind = "";
       pushEnemyLaser(enemy, -10);
       pushEnemyLaser(enemy, 10);
       pushMissile(enemy, -16);
       pushMissile(enemy, 16);
       break;
     case 5:
-      pushEnemyLaser(enemy, -24, -110);
-      pushEnemyLaser(enemy, -8, clamp(dx, -160, 160));
-      pushEnemyLaser(enemy, 8, clamp(dx, -160, 160));
-      pushEnemyLaser(enemy, 24, 110);
-      pushMissile(enemy, -20);
-      pushMissile(enemy, 0);
-      pushMissile(enemy, 20);
+      pushPlasma(enemy, -22, -40);
+      pushPlasma(enemy, 0);
+      pushPlasma(enemy, 22, 40);
+      pushMissile(enemy, -18);
+      pushMissile(enemy, 18);
       break;
     case 6: {
       const t = enemy.phase || 0;
       pushEnemyLaser(enemy, -10, Math.sin(t) * 170);
       pushEnemyLaser(enemy, 10, Math.cos(t) * 170);
-      pushEnemyLaser(enemy, 0, Math.sin(t * 1.5) * 90);
+      pushPlasma(enemy, 0, Math.sin(t * 1.5) * 90);
       break;
     }
     case 7:
@@ -319,18 +327,23 @@ function fireBossPattern(enemy, player, pushEnemyLaser, pushMissile) {
       pushEnemyLaser(enemy, 12, -70);
       break;
     case 8:
-      enemy.burstLeft = 3;
+      enemy.burstLeft = 2;
+      enemy.burstKind = "plasma";
       for (let s = -2; s <= 2; s += 1) {
-        pushEnemyLaser(enemy, s * 9, s * 52);
+        pushPlasma(enemy, s * 12, s * 46);
       }
       break;
     default: {
       const pattern = Math.floor((enemy.phase || 0) * 2) % 3;
-      if (pattern === 0) {
+      if (plasma) {
+        pushPlasma(enemy, -14);
+        pushPlasma(enemy, 14);
+      } else if (pattern === 0) {
         pushEnemyLaser(enemy, -16);
         pushEnemyLaser(enemy, 16);
       } else if (pattern === 1) {
         enemy.burstLeft = 3;
+        enemy.burstKind = "";
         pushEnemyLaser(enemy);
       } else {
         pushEnemyLaser(enemy, 0, clamp(dx * 1.15, -160, 160));
@@ -693,6 +706,13 @@ export function useGame(layout) {
       );
       const shieldHp =
         Math.random() < chance ? (Math.random() < 0.25 ? 2 : 1) : 0;
+      const caster =
+        Math.random() <
+        Math.min(0.28, (ENEMY.plasmaChance || 0.16) + (stage - 1) * 0.012);
+      if (caster) {
+        fireInterval = 1680;
+        speedMul *= 0.86;
+      }
 
       enemiesRef.current.push({
         id: uid(),
@@ -708,7 +728,8 @@ export function useGame(layout) {
         fireInterval,
         laserSpeed,
         mode,
-        variant: Math.floor(Math.random() * ENEMY.variantCount),
+        weapon: caster ? "plasma" : "laser",
+        variant: caster ? 5 : Math.floor(Math.random() * ENEMY.variantCount),
         burstLeft: 0,
         isBoss: false,
         shieldHp,
@@ -770,7 +791,9 @@ export function useGame(layout) {
         variant: ((cfg.bossVariant ?? 0) + slot * 2) % 6,
         bossVariant: cfg.bossVariant ?? 0,
         attackKind,
+        usesPlasma: attackKind % 3 === 2 || attackKind === 5,
         burstLeft: 0,
+        burstKind: "",
         isBoss: true,
         hp,
         maxHp: hp,
@@ -904,7 +927,7 @@ export function useGame(layout) {
       if (bannerAccRef.current > 0) {
         bannerAccRef.current -= dt * 1000;
         if (bannerAccRef.current <= 0 && phase !== "clear") {
-          dispatch({ type: "banner", banner: "", bannerSub: "" });
+          dispatch({ type: "banner", banner: "", bannerSub: "", bannerKind: "" });
         }
       }
 
@@ -1107,6 +1130,40 @@ export function useGame(layout) {
         });
       };
 
+      const pushPlasma = (enemy, ox = 0, vx = 0) => {
+        const size = PLASMA.size;
+        const cx = enemy.x + enemy.width / 2 + ox;
+        const cy = enemy.y + enemy.height * 0.72;
+        const pcx = player.x + player.width / 2;
+        const pcy = player.y + player.height / 2;
+        const dx = pcx - cx;
+        const dy = Math.max(36, pcy - cy);
+        const dist = Math.hypot(dx, dy) || 1;
+        const launch = PLASMA.speed * 0.55;
+        const ivx = (dx / dist) * launch * 0.45 + vx * 0.35;
+        missiles.push({
+          id: uid(),
+          kind: "plasma",
+          x: cx - size / 2,
+          y: cy,
+          width: size,
+          height: size,
+          vx: ivx,
+          vy: launch,
+          speed: launch,
+          maxSpeed: PLASMA.speed + Math.min(40, stage * 4),
+          accel: 90,
+          turn: enemy.missileHoming
+            ? Math.min((PLASMA.homing || 48) + 12, 72)
+            : PLASMA.homing || 48,
+          life: 0,
+          angle: Math.atan2(ivx, launch),
+          fromPlayer: false,
+          damage: 1,
+          pulse: 0,
+        });
+      };
+
       for (const enemy of enemies) {
         if (enemy.isBoss) {
           const homeY = enemy.homeY != null ? enemy.homeY : BOSS.parkY;
@@ -1156,10 +1213,19 @@ export function useGame(layout) {
         const interval = enemy.fireInterval || ENEMY.fireIntervalMs;
 
         if (enemy.burstLeft > 0) {
-          if (enemy.fireAcc >= 110) {
+          const burstGap =
+            enemy.burstKind === "plasma" || enemy.weapon === "plasma"
+              ? 160
+              : 110;
+          if (enemy.fireAcc >= burstGap) {
             enemy.fireAcc = 0;
             enemy.burstLeft -= 1;
-            pushEnemyLaser(enemy);
+            if (enemy.burstKind === "plasma" || enemy.weapon === "plasma") {
+              pushPlasma(enemy, (Math.random() - 0.5) * 18);
+            } else {
+              pushEnemyLaser(enemy);
+            }
+            if (enemy.burstLeft <= 0) enemy.burstKind = "";
           }
         } else if (enemy.fireAcc >= interval && enemy.y > 16) {
           const raiderOnScreen =
@@ -1168,9 +1234,21 @@ export function useGame(layout) {
           if (raiderOnScreen) {
           enemy.fireAcc = 0;
           if (enemy.mode === "boss") {
-            fireBossPattern(enemy, player, pushEnemyLaser, pushMissile);
+            fireBossPattern(
+              enemy,
+              player,
+              pushEnemyLaser,
+              pushMissile,
+              pushPlasma
+            );
+          } else if (enemy.weapon === "plasma" || enemy.mode === "plasma") {
+            pushPlasma(enemy, Math.random() < 0.5 ? -10 : 10);
+            if (Math.random() < 0.48) {
+              pushPlasma(enemy, 0, (Math.random() - 0.5) * 70);
+            }
           } else if (enemy.mode === "burst") {
             enemy.burstLeft = 2;
+            enemy.burstKind = "";
             pushEnemyLaser(enemy);
           } else if (enemy.mode === "twin") {
             pushEnemyLaser(enemy, -10);
@@ -1197,8 +1275,11 @@ export function useGame(layout) {
             enemy.missileAcc = 0;
             const n = enemy.missileCount || 1;
             const spread = 20;
+            const plasmaVolley = enemy.usesPlasma && Math.random() < 0.58;
             for (let k = 0; k < n; k += 1) {
-              pushMissile(enemy, (k - (n - 1) / 2) * spread);
+              const ox = (k - (n - 1) / 2) * spread;
+              if (plasmaVolley) pushPlasma(enemy, ox);
+              else pushMissile(enemy, ox);
             }
           }
         }
@@ -1210,6 +1291,8 @@ export function useGame(layout) {
       }
       for (const missile of missiles) {
         missile.life = (missile.life || 0) + dt;
+        const isPlasma = missile.kind === "plasma";
+        if (isPlasma) missile.pulse = (missile.pulse || 0) + dt * 9;
         const mx = missile.x + missile.width / 2;
         const my = missile.y + missile.height / 2;
         let tx;
@@ -1260,16 +1343,34 @@ export function useGame(layout) {
         let diff = want - ang;
         while (diff > Math.PI) diff -= Math.PI * 2;
         while (diff < -Math.PI) diff += Math.PI * 2;
-        const maxTurn = ((missile.turn || 90) * Math.PI / 180) * dt;
+        const turnRate = missile.turn || (isPlasma ? PLASMA.homing : 90);
+        const maxTurn = (turnRate * Math.PI / 180) * dt;
         ang += clamp(diff, -maxTurn, maxTurn);
-        const cap = missile.maxSpeed || (missile.fromPlayer ? PLAYER_ROCKET.speed : MISSILE.speed);
-        const launch = missile.fromPlayer ? PLAYER_ROCKET.launchSpeed : MISSILE.launchSpeed;
-        const accel = missile.accel || (missile.fromPlayer ? PLAYER_ROCKET.accel : MISSILE.accel);
+        const cap =
+          missile.maxSpeed ||
+          (isPlasma
+            ? missile.fromPlayer
+              ? PLASMA.playerSpeed
+              : PLASMA.speed
+            : missile.fromPlayer
+              ? PLAYER_ROCKET.speed
+              : MISSILE.speed);
+        const launch = missile.fromPlayer
+          ? PLAYER_ROCKET.launchSpeed
+          : isPlasma
+            ? PLASMA.speed * 0.55
+            : MISSILE.launchSpeed;
+        const accel =
+          missile.accel ||
+          (missile.fromPlayer ? PLAYER_ROCKET.accel : isPlasma ? 90 : MISSILE.accel);
         missile.speed = Math.min(cap, (missile.speed || launch) + accel * dt);
         missile.vx = Math.sin(ang) * missile.speed;
         missile.vy = Math.cos(ang) * missile.speed;
         missile.x += missile.vx * dt;
         missile.y += missile.vy * dt;
+        if (isPlasma) {
+          missile.x += Math.sin((missile.life || 0) * 8 + (missile.id || 0)) * 20 * dt;
+        }
         missile.angle = ang;
       }
 
@@ -1475,9 +1576,14 @@ export function useGame(layout) {
           }
           if (shot) continue;
         }
-        const maxLife = missile.fromPlayer
-          ? PLAYER_ROCKET.maxLife
-          : MISSILE.maxLife;
+        const maxLife =
+          missile.kind === "plasma"
+            ? missile.fromPlayer
+              ? PLASMA.playerMaxLife
+              : PLASMA.maxLife
+            : missile.fromPlayer
+              ? PLAYER_ROCKET.maxLife
+              : MISSILE.maxLife;
         if ((missile.life || 0) > maxLife) continue;
         if (missile.y > layout.height + 48) continue;
         if (missile.y + missile.height < -48) continue;
@@ -1542,10 +1648,13 @@ export function useGame(layout) {
         remainingEnemies.length === 0
       ) {
         phaseRef.current = "boss";
-        bannerAccRef.current = 2000;
+        bannerAccRef.current = 1400;
+        shakeRef.current.t = Math.max(shakeRef.current.t, 0.16);
+        shakeRef.current.power = Math.max(shakeRef.current.power || 0, 14);
         dispatch({
           type: "phase",
           phase: "boss",
+          bannerKind: "boss",
           banner: cfg.bossCount > 1 ? "ÇİFTE PATRON" : cfg.bossName || "PATRON",
           bannerSub:
             cfg.bossCount > 1
@@ -1567,6 +1676,7 @@ export function useGame(layout) {
         dispatch({
           type: "phase",
           phase: "clear",
+          bannerKind: "",
           banner: `AŞAMA ${stage} TAMAM`,
           bannerSub: "Sonraki aşama yükleniyor",
         });

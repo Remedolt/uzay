@@ -37,7 +37,9 @@ export function HowToPlay({ visible, onClose }) {
         <Text style={styles.sub}>Düşmanlar</Text>
         <Text style={styles.hint}>
           Ara sıra mavi kalkanlı gemi çıkar; kalkan bitmeden gemi düşmez.
-          Patronlar havada gezer. 10. aşamadan itibaren iki patron birden gelir.
+          Pembe ışıltılı plazma gemileri yavaş yavaş plazma topu atar. Bazı
+          patronlar lazer yerine plazma kullanır. Patronlar havada gezer.
+          10. aşamadan itibaren iki patron birden gelir.
         </Text>
         <Text style={styles.sub}>Düşenler</Text>
         <View style={styles.drops}>

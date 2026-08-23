@@ -59,6 +59,8 @@ export function EnemyShip({
   hp,
   maxHp,
   shieldHp = 0,
+  weapon,
+  usesPlasma = false,
 }) {
   if (isRaider) {
     return (
@@ -79,12 +81,14 @@ export function EnemyShip({
   const img = images[variant % images.length] || images[0];
   const ratio =
     isBoss && maxHp > 0 ? Math.max(0, Math.min(1, (hp ?? maxHp) / maxHp)) : 0;
+  const plasmaAura = weapon === "plasma" || usesPlasma;
 
   return (
     <View
       style={[styles.wrap, { left: x, top: y, width, height }]}
       pointerEvents="none"
     >
+      {plasmaAura ? <View style={styles.plasmaRing} /> : null}
       {shieldHp > 0 ? <View style={styles.shieldRing} /> : null}
       {isBoss ? (
         <View style={styles.hpTrack}>
@@ -120,6 +124,15 @@ const styles = StyleSheet.create({
   },
   image: {
     backgroundColor: "transparent",
+  },
+  plasmaRing: {
+    position: "absolute",
+    width: "132%",
+    height: "132%",
+    borderRadius: 999,
+    borderWidth: 2,
+    borderColor: "rgba(232, 121, 249, 0.85)",
+    backgroundColor: "rgba(192, 38, 211, 0.18)",
   },
   shieldRing: {
     position: "absolute",
