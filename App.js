@@ -5,6 +5,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Game } from "./src/components/Game";
 import { GAME_TITLE } from "./src/constants/game";
+import { applyWebViewport } from "./src/web/fullscreen";
 
 const faviconAsset = require("./assets/favicon.png");
 const iconAsset = require("./assets/icon.png");
@@ -21,6 +22,7 @@ export default function App() {
   useEffect(() => {
     if (Platform.OS !== "web" || typeof document === "undefined") return;
     document.title = GAME_TITLE;
+    applyWebViewport();
     const favicon = assetUrl(faviconAsset);
     const icon = assetUrl(iconAsset);
     const ensure = (rel, href) => {

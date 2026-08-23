@@ -288,6 +288,7 @@ export const DEFAULT_DIFFICULTY = "normal";
 export const HIGH_SCORE_KEY = "@ufo_shooter/high_score";
 export const LEADERBOARD_KEY = "@ufo_shooter/leaderboard_v1";
 export const PLAYER_NAME_KEY = "@ufo_shooter/player_name";
+export const FULLSCREEN_KEY = "@ufo_shooter/fullscreen";
 export const DEFAULT_PLAYER_NAME = "Pilot";
 
 export const SHIPS = [

@@ -1,6 +1,9 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { enterFullscreen, isFullscreen } from "../../web/fullscreen";
 
-export function PauseScreen({ onResume }) {
+export function PauseScreen({ onResume, onQuit }) {
+  const showFs = Platform.OS === "web" && !isFullscreen();
+
   return (
     <View style={styles.overlay}>
       <View style={styles.card}>
@@ -8,6 +11,20 @@ export function PauseScreen({ onResume }) {
         <Text style={styles.hint}>ESC veya buton ile devam et</Text>
         <Pressable style={styles.button} onPress={onResume}>
           <Text style={styles.buttonText}>Devam Et</Text>
+        </Pressable>
+        {showFs ? (
+          <Pressable
+            style={styles.fsBtn}
+            onPress={() => {
+              enterFullscreen();
+              onResume();
+            }}
+          >
+            <Text style={styles.fsText}>Tam ekran</Text>
+          </Pressable>
+        ) : null}
+        <Pressable style={styles.quitBtn} onPress={onQuit}>
+          <Text style={styles.quitText}>Oyundan Çık</Text>
         </Pressable>
       </View>
     </View>
@@ -53,6 +70,32 @@ const styles = StyleSheet.create({
   buttonText: {
     color: "#082f49",
     fontSize: 17,
+    fontWeight: "800",
+  },
+  fsBtn: {
+    marginTop: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 22,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(125, 211, 252, 0.45)",
+  },
+  fsText: {
+    color: "#e0f2fe",
+    fontSize: 15,
+    fontWeight: "800",
+  },
+  quitBtn: {
+    marginTop: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 22,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(248, 113, 113, 0.55)",
+  },
+  quitText: {
+    color: "#fecaca",
+    fontSize: 15,
     fontWeight: "800",
   },
 });

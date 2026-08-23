@@ -3,6 +3,7 @@ import { Platform, StyleSheet, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { SCREEN } from "../constants/game";
 import { useGame } from "../hooks/useGame";
+import { applyWebViewport } from "../web/fullscreen";
 import { Player } from "./entities/Player";
 import { Meteor } from "./entities/Meteor";
 import { Laser } from "./entities/Laser";
@@ -28,6 +29,32 @@ export function Game() {
   const playing = game.hud.screen === SCREEN.PLAYING;
   const paused = playing && game.hud.paused;
   const shake = game.shake || { x: 0, y: 0 };
+
+  useEffect(() => {
+    applyWebViewport();
+  }, []);
+
+  useEffect(() => {
+    if (Platform.OS !== "web" || typeof window === "undefined") return undefined;
+    const sync = () => {
+      const vv = window.visualViewport;
+      const width = Math.round(vv?.width || window.innerWidth || 0);
+      const height = Math.round(vv?.height || window.innerHeight || 0);
+      if (width < 8 || height < 8) return;
+      setLayout((prev) =>
+        prev.width === width && prev.height === height ? prev : { width, height }
+      );
+    };
+    sync();
+    window.addEventListener("resize", sync);
+    window.visualViewport?.addEventListener("resize", sync);
+    window.visualViewport?.addEventListener("scroll", sync);
+    return () => {
+      window.removeEventListener("resize", sync);
+      window.visualViewport?.removeEventListener("resize", sync);
+      window.visualViewport?.removeEventListener("scroll", sync);
+    };
+  }, []);
 
   useEffect(() => {
     if (Platform.OS !== "web") return undefined;
@@ -85,7 +112,12 @@ export function Game() {
     <View
       ref={arenaRef}
       style={styles.arena}
-      onLayout={(e) => setLayout(e.nativeEvent.layout)}
+      onLayout={(e) => {
+        if (Platform.OS === "web" && typeof window !== "undefined" && window.visualViewport) {
+          return;
+        }
+        setLayout(e.nativeEvent.layout);
+      }}
     >
       <GestureDetector gesture={Gesture.Race(pan, tap)}>
         <View
@@ -178,7 +210,9 @@ export function Game() {
         />
       ) : null}
 
-      {paused ? <PauseScreen onResume={game.resumeGame} /> : null}
+      {paused ? (
+        <PauseScreen onResume={game.resumeGame} onQuit={game.goToStart} />
+      ) : null}
 
       {game.hud.screen === SCREEN.START && (
         <StartScreen
@@ -208,8 +242,8 @@ const styles = StyleSheet.create({
   arena: {
     flex: 1,
     width: "100%",
-    height: "100%",
-    minHeight: Platform.OS === "web" ? "100vh" : undefined,
+    height: Platform.OS === "web" ? "100dvh" : "100%",
+    minHeight: Platform.OS === "web" ? "100dvh" : undefined,
     backgroundColor: "#030712",
     overflow: "hidden",
     cursor: Platform.OS === "web" ? "default" : undefined,

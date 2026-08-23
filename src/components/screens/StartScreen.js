@@ -1,6 +1,13 @@
-import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useEffect, useState } from "react";
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { GAME_TITLE, PLAYER, SHIPS, getShip } from "../../constants/game";
+import {
+  enterFullscreen,
+  fullscreenSupported,
+  prefersFullscreenByDefault,
+  loadFullscreenPref,
+  saveFullscreenPref,
+} from "../../web/fullscreen";
 import { Player } from "../entities/Player";
 import { SpaceBackground } from "../fx/SpaceBackground";
 import { Scoreboard } from "../hud/Scoreboard";
@@ -43,6 +50,30 @@ export function StartScreen({
 }) {
   const selected = getShip(shipId);
   const [help, setHelp] = useState(false);
+  const [fullscreen, setFullscreen] = useState(prefersFullscreenByDefault);
+  const web = Platform.OS === "web";
+
+  useEffect(() => {
+    if (!web) return undefined;
+    let live = true;
+    loadFullscreenPref().then((on) => {
+      if (live) setFullscreen(on);
+    });
+    return () => {
+      live = false;
+    };
+  }, [web]);
+
+  const toggleFullscreen = () => {
+    const next = !fullscreen;
+    setFullscreen(next);
+    saveFullscreenPref(next);
+  };
+
+  const start = () => {
+    if (web && fullscreen) enterFullscreen();
+    onStart(shipId);
+  };
 
   return (
     <View style={styles.overlay}>
@@ -95,10 +126,27 @@ export function StartScreen({
 
         <Pressable
           style={[styles.button, { backgroundColor: selected.body }]}
-          onPress={() => onStart(shipId)}
+          onPress={start}
         >
           <Text style={styles.buttonText}>Oyuna Başla</Text>
         </Pressable>
+        {web ? (
+          <Pressable style={styles.fsRow} onPress={toggleFullscreen}>
+            <View style={[styles.fsSwitch, fullscreen && styles.fsSwitchOn]}>
+              <View style={[styles.fsKnob, fullscreen && styles.fsKnobOn]} />
+            </View>
+            <View style={styles.fsCopy}>
+              <Text style={styles.fsTitle}>Tam ekran</Text>
+              <Text style={styles.fsHint}>
+                {fullscreen
+                  ? fullscreenSupported()
+                    ? "Oyun başlayınca tarayıcı çubuğu gizlenir"
+                    : "Mümkünse başlayınca ekranı doldurur"
+                  : "Kapalı — tarayıcı çubukları görünür"}
+              </Text>
+            </View>
+          </Pressable>
+        ) : null}
         <Pressable style={styles.helpBtn} onPress={() => setHelp(true)}>
           <Text style={styles.helpText}>Nasıl oynanır</Text>
         </Pressable>
@@ -229,6 +277,55 @@ const styles = StyleSheet.create({
     color: "#0f172a",
     fontSize: 18,
     fontWeight: "800",
+  },
+  fsRow: {
+    marginTop: 14,
+    width: "100%",
+    maxWidth: 320,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(125, 211, 252, 0.35)",
+    backgroundColor: "rgba(15, 23, 42, 0.72)",
+  },
+  fsSwitch: {
+    width: 44,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: "rgba(51, 65, 85, 0.9)",
+    justifyContent: "center",
+    paddingHorizontal: 3,
+  },
+  fsSwitchOn: {
+    backgroundColor: "#22d3ee",
+  },
+  fsKnob: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "#e2e8f0",
+  },
+  fsKnobOn: {
+    alignSelf: "flex-end",
+    backgroundColor: "#082f49",
+  },
+  fsCopy: {
+    flex: 1,
+  },
+  fsTitle: {
+    color: "#f8fafc",
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  fsHint: {
+    color: "#94a3b8",
+    fontSize: 11,
+    marginTop: 2,
+    lineHeight: 15,
   },
   helpBtn: {
     marginTop: 10,
