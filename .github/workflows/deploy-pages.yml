@@ -2,7 +2,7 @@ name: Deploy GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches: [main, fix/github-pages-baseurl]
   workflow_dispatch:
 
 permissions:
@@ -28,6 +28,9 @@ jobs:
         run: |
           node -e "const fs=require('fs'); const p='app.json'; const j=JSON.parse(fs.readFileSync(p,'utf8')); j.expo.experiments=j.expo.experiments||{}; j.expo.experiments.baseUrl='/uzay'; fs.writeFileSync(p, JSON.stringify(j,null,2)+'\n');"
       - run: npx expo export -p web
+      - name: Prefix asset URLs for /uzay
+        run: |
+          node -e "const fs=require('fs'); const p='dist/index.html'; let t=fs.readFileSync(p,'utf8'); t=t.replace(/(href|src)=\"\/(?!uzay\/)/g,'$1=\"/uzay/'); fs.writeFileSync(p,t); console.log(t);"
       - name: Add .nojekyll
         run: touch dist/.nojekyll
       - uses: actions/upload-pages-artifact@v3
