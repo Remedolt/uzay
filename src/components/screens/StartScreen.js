@@ -47,6 +47,7 @@ export function StartScreen({
   shipId,
   onSelectShip,
   onStart,
+  onUnlockAudio,
 }) {
   const selected = getShip(shipId);
   const [help, setHelp] = useState(false);
@@ -71,8 +72,14 @@ export function StartScreen({
   };
 
   const start = () => {
-    if (web && fullscreen) enterFullscreen();
+    try {
+      onUnlockAudio?.();
+    } catch {
+    }
     onStart(shipId);
+    if (web && fullscreen) {
+      setTimeout(() => enterFullscreen(), 0);
+    }
   };
 
   return (
@@ -84,14 +91,16 @@ export function StartScreen({
       >
         <Text style={styles.title}>{GAME_TITLE}</Text>
 
-        <Text style={styles.pickLabel}>GEMİ SEÇ</Text>
         <View style={styles.shipRow}>
           {SHIPS.map((ship) => {
             const on = ship.id === shipId;
             return (
               <Pressable
                 key={ship.id}
-                onPress={() => onSelectShip(ship.id)}
+                onPress={() => {
+                  onUnlockAudio?.();
+                  onSelectShip(ship.id);
+                }}
                 style={[styles.shipCard, on && styles.shipCardOn]}
               >
                 <Player
@@ -147,15 +156,25 @@ export function StartScreen({
             </View>
           </Pressable>
         ) : null}
-        <Pressable style={styles.helpBtn} onPress={() => setHelp(true)}>
-          <Text style={styles.helpText}>Nasıl oynanır</Text>
-        </Pressable>
+        {web ? null : (
+          <Pressable
+            style={styles.helpBtn}
+            onPress={() => {
+              onUnlockAudio?.();
+              setHelp(true);
+            }}
+          >
+            <Text style={styles.helpText}>Nasıl oynanır</Text>
+          </Pressable>
+        )}
 
         <View style={styles.boardWrap}>
           <Scoreboard entries={leaderboard} />
         </View>
       </ScrollView>
-      <HowToPlay visible={help} onClose={() => setHelp(false)} />
+      {web ? null : (
+        <HowToPlay visible={help} onClose={() => setHelp(false)} />
+      )}
     </View>
   );
 }
@@ -183,18 +202,12 @@ const styles = StyleSheet.create({
     marginTop: 22,
     marginBottom: 8,
   },
-  pickLabel: {
-    color: "#cbd5e1",
-    fontSize: 13,
-    letterSpacing: 1,
-    marginTop: 4,
-    marginBottom: 8,
-  },
   shipRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "center",
     gap: 10,
+    marginTop: 4,
     marginBottom: 14,
     maxWidth: 420,
   },

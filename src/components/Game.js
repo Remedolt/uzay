@@ -1,5 +1,6 @@
+import { useKeepAwake } from "expo-keep-awake";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Platform, StyleSheet, View } from "react-native";
+import { BackHandler, Platform, StyleSheet, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { SCREEN } from "../constants/game";
 import { useGame } from "../hooks/useGame";
@@ -22,18 +23,44 @@ import { UltimateButton } from "./hud/UltimateButton";
 import { StartScreen } from "./screens/StartScreen";
 import { GameOverScreen } from "./screens/GameOverScreen";
 import { PauseScreen } from "./screens/PauseScreen";
+import { WebIntro } from "./screens/WebIntro";
 
 export function Game() {
   const [layout, setLayout] = useState({ width: 0, height: 0 });
+  const [showIntro, setShowIntro] = useState(true);
   const arenaRef = useRef(null);
   const game = useGame(layout);
   const playing = game.hud.screen === SCREEN.PLAYING;
   const paused = playing && game.hud.paused;
   const shake = game.shake || { x: 0, y: 0 };
+  useKeepAwake();
 
   useEffect(() => {
     applyWebViewport();
   }, []);
+
+  useEffect(() => {
+    if (Platform.OS === "web") return undefined;
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (game.hud.screen === SCREEN.START && showIntro) {
+        setShowIntro(false);
+        return true;
+      }
+      if (game.hud.screen === SCREEN.PLAYING && !game.hud.paused) {
+        game.togglePause();
+        return true;
+      }
+      if (game.hud.screen === SCREEN.PLAYING && game.hud.paused) {
+        return true;
+      }
+      if (game.hud.screen === SCREEN.GAME_OVER) {
+        game.goToStart();
+        return true;
+      }
+      return false;
+    });
+    return () => sub.remove();
+  }, [game, showIntro]);
 
   useEffect(() => {
     if (Platform.OS !== "web" || typeof window === "undefined") return undefined;
@@ -70,6 +97,11 @@ export function Game() {
         e.preventDefault();
         game.fireUltimate();
       }
+      if (e.code === "KeyZ" || e.key === "z" || e.key === "Z") {
+        if (e.repeat) return;
+        e.preventDefault();
+        game.fireZeus();
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -88,10 +120,6 @@ export function Game() {
     .runOnJS(true)
     .onBegin((e) => moveFromPointer(e.x, e.y, true))
     .onChange((e) => moveFromPointer(e.x, e.y, true));
-
-  const tap = Gesture.Tap().runOnJS(true).onEnd(() => {
-    if (game.hud.screen === SCREEN.PLAYING) game.fireMissile();
-  });
 
   const onWebPointerMove = useCallback(
     (e) => {
@@ -120,7 +148,7 @@ export function Game() {
         setLayout(e.nativeEvent.layout);
       }}
     >
-      <GestureDetector gesture={Gesture.Race(pan, tap)}>
+      <GestureDetector gesture={pan}>
         <View
           style={[
             styles.playfield,
@@ -130,11 +158,6 @@ export function Game() {
             ? {
                 onMouseMove: onWebPointerMove,
                 onMouseDown: onWebPointerMove,
-                onClick: (e) => {
-                  if (game.hud.screen !== SCREEN.PLAYING) return;
-                  e.preventDefault?.();
-                  game.fireMissile();
-                },
                 onTouchMove: (e) => {
                   const t = e.nativeEvent?.touches?.[0] || e.nativeEvent;
                   const rect = e.currentTarget.getBoundingClientRect?.();
@@ -169,7 +192,6 @@ export function Game() {
                 shieldHp={game.hud.shieldHp}
                 weaponLevel={game.hud.weaponLevel}
                 droneCount={game.hud.droneCount}
-                missiles={game.hud.missiles}
               />
               <StageBanner
                 title={game.hud.banner}
@@ -210,22 +232,40 @@ export function Game() {
       </GestureDetector>
 
       {playing ? (
-        <UltimateButton
-          charge={game.hud.ultimate || 0}
-          onPress={game.fireUltimate}
-        />
+        <>
+          <UltimateButton
+            side="left"
+            variant="zeus"
+            label="ZEUS"
+            icon="⚡"
+            charge={game.hud.zeus || 0}
+            onPress={game.fireZeus}
+          />
+          <UltimateButton
+            charge={game.hud.ultimate || 0}
+            onPress={game.fireUltimate}
+          />
+        </>
       ) : null}
 
       {paused ? (
         <PauseScreen onResume={game.resumeGame} onQuit={game.goToStart} />
       ) : null}
 
-      {game.hud.screen === SCREEN.START && (
+      {game.hud.screen === SCREEN.START && showIntro ? (
+        <WebIntro
+          onUnlockAudio={game.unlockAudio}
+          onContinue={() => setShowIntro(false)}
+        />
+      ) : null}
+
+      {game.hud.screen === SCREEN.START && !showIntro && (
         <StartScreen
           leaderboard={game.hud.leaderboard}
           shipId={game.shipId}
           onSelectShip={game.setShipId}
           onStart={game.startGame}
+          onUnlockAudio={game.unlockAudio}
         />
       )}
 

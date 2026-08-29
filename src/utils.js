@@ -1,4 +1,4 @@
-import { METEOR, SCORE_PER_LEVEL, levelFromScore } from "./constants/game";
+import { METEOR, SCORE_PER_LEVEL, stageScale, levelFromScore } from "./constants/game";
 
 export function aabbIntersects(a, b) {
   return (
@@ -29,9 +29,22 @@ export { levelFromScore };
 
 export function difficultyFromLevel(stage) {
   const tier = Math.max(0, (stage || 1) - 1);
-  const speed = Math.min(METEOR.maxSpeed, METEOR.baseSpeed + tier * 16);
-  const spawnMs = Math.max(METEOR.minSpawnMs, METEOR.baseSpawnMs - tier * 85);
-  return { speed, spawnMs, level: stage, scoreMul: 1 + Math.min(0.8, tier * 0.06) };
+  const late = stageScale(stage);
+  const speed = Math.min(
+    METEOR.maxSpeed * late,
+    (METEOR.baseSpeed + tier * 16) * late
+  );
+  const spawnMs = Math.max(
+    METEOR.minSpawnMs / late,
+    (METEOR.baseSpawnMs - tier * 85) / late
+  );
+  return {
+    speed,
+    spawnMs,
+    level: stage,
+    scoreMul: 1 + Math.min(0.8, tier * 0.06) + (late > 1 ? 0.2 : 0),
+    late,
+  };
 }
 
 export function difficultyFromScore(score) {

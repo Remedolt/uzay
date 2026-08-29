@@ -11,6 +11,7 @@ export const MAX_LIVES = 5;
 export const POINTS_PER_METEOR = 10;
 export const POINTS_PER_ENEMY = 30;
 export const POINTS_PER_RAIDER = 55;
+export const POINTS_PER_KAMIKAZE = 90;
 export const POINTS_PER_BOSS = 180;
 export const SCORE_PER_LEVEL = 80;
 
@@ -26,6 +27,11 @@ export const ULTIMATE = {
   perMeteor: 0.02,
   perBoss: 0.22,
   empBossDamage: 14,
+};
+
+/** PATLAT'a göre %50 daha geç dolar; dolunca ekranı temizler. */
+export const ZEUS = {
+  chargeDivisor: 1.5,
 };
 
 export const DRONE = {
@@ -87,6 +93,34 @@ export const RAIDER = {
   hp: 3,
   variants: [4, 6, 7],
 };
+
+export const KAMIKAZE = {
+  width: 56,
+  height: 70,
+  speedMul: 2.9,
+  maxSpeed: 560,
+  hp: 2,
+};
+
+export const LATE_GAME_STAGE = 20;
+export const LATE_GAME_MUL = 1.35;
+
+export function lateGameMul(stage) {
+  return (stage || 1) > LATE_GAME_STAGE ? LATE_GAME_MUL : 1;
+}
+
+/** Aşama 5+ %10, 15+ %15, 25+ %30 zorluk. */
+export function stageDifficultyMul(stage) {
+  const n = stage || 1;
+  if (n > 25) return 1.3;
+  if (n > 15) return 1.15;
+  if (n > 5) return 1.1;
+  return 1;
+}
+
+export function stageScale(stage) {
+  return lateGameMul(stage) * stageDifficultyMul(stage);
+}
 
 export const BOSS = {
   width: 118,
@@ -224,18 +258,21 @@ export function stageConfig(stage) {
   const idx = Math.max(0, (stage || 1) - 1);
   const base = STAGES[idx % STAGES.length];
   const loop = Math.floor(idx / STAGES.length);
+  const n = stage || 1;
+  const late = stageScale(n);
   return {
     ...base,
-    id: stage,
+    id: n,
     enemyQuota: base.enemyQuota + loop * 4,
-    bossHp: base.bossHp + loop * 12,
+    bossHp: Math.round((base.bossHp + loop * 12) * late),
     waveMin: base.waveMin,
     waveMax: 3,
-    missileMs: Math.max(700, base.missileMs - loop * 80),
+    missileMs: Math.max(560, Math.round((Math.max(700, base.missileMs - loop * 80)) / late)),
     missileCount: Math.min(4, base.missileCount + Math.floor(loop / 2)),
-    missileHoming: base.missileHoming + loop * 20,
+    missileHoming: Math.round((base.missileHoming + loop * 20) * late),
     raiderChance: Math.min(0.18, (base.raiderChance || 0) + loop * 0.03),
-    bossCount: (stage || 1) >= 10 ? 2 : 1,
+    kamikazeChance: n < 2 ? 0 : n > LATE_GAME_STAGE ? 0.03 : 0.022,
+    bossCount: n >= 10 ? 2 : 1,
     bossNameB: STAGES[(idx + 2) % STAGES.length].bossName,
   };
 }
@@ -256,11 +293,10 @@ export const POWERUP = {
   speed: 95,
   dropChance: 0.07,
   weights: {
-    life: 0.22,
-    shield: 0.22,
-    weapon: 0.2,
-    drone: 0.14,
-    rocket: 0.22,
+    life: 0.28,
+    shield: 0.28,
+    weapon: 0.26,
+    drone: 0.18,
   },
 };
 
@@ -269,7 +305,6 @@ export const POWERUP_TYPE = {
   SHIELD: "shield",
   WEAPON: "weapon",
   DRONE: "drone",
-  ROCKET: "rocket",
 };
 
 export const DIFFICULTIES = [

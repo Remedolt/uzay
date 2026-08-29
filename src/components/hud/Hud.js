@@ -1,24 +1,46 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Platform, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MAX_LIVES, WEAPON } from "../../constants/game";
 
-function Heart({ filled }) {
+function Heart({ filled, compact }) {
   return (
-    <View style={[styles.heart, filled ? styles.heartOn : styles.heartOff]}>
-      <Text style={[styles.heartText, !filled && styles.heartTextOff]}>♥</Text>
+    <View
+      style={[
+        styles.heart,
+        compact && styles.heartCompact,
+        filled ? styles.heartOn : styles.heartOff,
+      ]}
+    >
+      <Text
+        style={[
+          styles.heartText,
+          compact && styles.heartTextCompact,
+          !filled && styles.heartTextOff,
+        ]}
+      >
+        ♥
+      </Text>
     </View>
   );
 }
 
-function StatChip({ icon, label, value, accent }) {
+function StatChip({ icon, label, value, accent, compact }) {
   return (
-    <View style={[styles.chip, { borderColor: accent }]}>
-      <View style={[styles.chipIconWrap, { backgroundColor: accent + "33" }]}>
-        <Text style={[styles.chipIcon, { color: accent }]}>{icon}</Text>
+    <View style={[styles.chip, compact && styles.chipCompact, { borderColor: accent }]}>
+      <View
+        style={[
+          styles.chipIconWrap,
+          compact && styles.chipIconWrapCompact,
+          { backgroundColor: accent + "33" },
+        ]}
+      >
+        <Text style={[styles.chipIcon, compact && styles.chipIconCompact, { color: accent }]}>
+          {icon}
+        </Text>
       </View>
       <View>
-        <Text style={styles.chipLabel}>{label}</Text>
-        <Text style={styles.chipValue}>{value}</Text>
+        <Text style={[styles.chipLabel, compact && styles.chipLabelCompact]}>{label}</Text>
+        <Text style={[styles.chipValue, compact && styles.chipValueCompact]}>{value}</Text>
       </View>
     </View>
   );
@@ -36,10 +58,10 @@ export function Hud({
   shieldHp = 0,
   weaponLevel = 0,
   droneCount = 0,
-  missiles = 0,
 }) {
   const insets = useSafeAreaInsets();
-  const slots = MAX_LIVES;
+  const compact = Platform.OS !== "web";
+  const slots = compact ? Math.max(1, lives) : MAX_LIVES;
   const isMaxWeapon = weaponLevel >= WEAPON.maxLevel;
   const weaponLabel = isMaxWeapon ? "MAX" : `${weaponLevel + 1}x`;
   const weaponAccent = isMaxWeapon ? "#fbbf24" : "#f59e0b";
@@ -47,7 +69,7 @@ export function Hud({
   const waveRatio = quota > 0 ? Math.max(0, Math.min(1, spawned / quota)) : 1;
   const progressText =
     phase === "boss"
-      ? "Patron"
+      ? "Amiral"
       : phase === "clear"
         ? "Tamam"
         : `${Math.min(spawned, quota)}/${quota}`;
@@ -59,12 +81,17 @@ export function Hud({
   return (
     <>
       <View
-        style={[styles.bar, { paddingTop: insets.top + 10 }]}
+        style={[
+          styles.bar,
+          compact && styles.barCompact,
+          { paddingTop: insets.top + (compact ? 6 : 10) },
+        ]}
         pointerEvents="none"
       >
         <View style={styles.topRow}>
-        <View style={styles.panel}>
-          <StatChip icon="★" label="SKOR" value={score} accent="#fbbf24" />
+        <View style={[styles.panel, compact && styles.panelCompact]}>
+          <StatChip compact={compact} icon="★" label="SKOR" value={score} accent="#fbbf24" />
+          {compact ? null : (
           <View style={[styles.chip, { borderColor: "#a78bfa" }]}>
             <View
               style={[styles.chipIconWrap, { backgroundColor: "#a78bfa33" }]}
@@ -84,7 +111,9 @@ export function Hud({
               </View>
             </View>
           </View>
+          )}
           <StatChip
+            compact={compact}
             icon="✦"
             label="SİLAH"
             value={weaponLabel}
@@ -107,27 +136,16 @@ export function Hud({
               </Text>
             </View>
           ) : null}
-          <View style={styles.livesPanel}>
-            <Text style={styles.livesLabel}>CAN</Text>
+          <View style={[styles.livesPanel, compact && styles.livesPanelCompact]}>
+            <Text style={[styles.livesLabel, compact && styles.chipLabelCompact]}>CAN</Text>
             <View style={styles.livesRow}>
               {Array.from({ length: slots }, (_, i) => (
-                <Heart key={i} filled={i < lives} />
+                <Heart key={i} compact={compact} filled={compact ? true : i < lives} />
               ))}
             </View>
           </View>
         </View>
       </View>
-      </View>
-
-      <View
-        style={[
-          styles.rocketDock,
-          { bottom: Math.max(18, insets.bottom + 14) },
-        ]}
-        pointerEvents="none"
-      >
-        <Text style={styles.rocketLabel}>FÜZE</Text>
-        <Text style={styles.rocketCount}>{missiles}</Text>
       </View>
     </>
   );
@@ -140,6 +158,14 @@ const styles = StyleSheet.create({
     right: 12,
     top: 0,
     zIndex: 4,
+  },
+  barCompact: {
+    left: 8,
+    right: 8,
+  },
+  panelCompact: {
+    maxWidth: "55%",
+    gap: 4,
   },
   topRow: {
     flexDirection: "row",
@@ -177,6 +203,12 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 8,
   },
+  chipCompact: {
+    gap: 5,
+    borderRadius: 10,
+    paddingVertical: 4,
+    paddingHorizontal: 6,
+  },
   chipIconWrap: {
     width: 26,
     height: 26,
@@ -184,9 +216,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  chipIconWrapCompact: {
+    width: 21,
+    height: 21,
+    borderRadius: 6,
+  },
   chipIcon: {
     fontSize: 14,
     fontWeight: "800",
+  },
+  chipIconCompact: {
+    fontSize: 11,
   },
   chipLabel: {
     color: "#94a3b8",
@@ -194,11 +234,18 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     letterSpacing: 0.8,
   },
+  chipLabelCompact: {
+    fontSize: 8,
+    marginBottom: 2,
+  },
   chipValue: {
     color: "#f8fafc",
     fontSize: 15,
     fontWeight: "800",
     marginTop: 1,
+  },
+  chipValueCompact: {
+    fontSize: 12,
   },
   rightCol: {
     alignItems: "flex-end",
@@ -212,6 +259,11 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 8,
     alignItems: "flex-end",
+  },
+  livesPanelCompact: {
+    paddingVertical: 4,
+    paddingHorizontal: 6,
+    borderRadius: 10,
   },
   livesLabel: {
     color: "#94a3b8",
@@ -231,6 +283,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  heartCompact: {
+    width: 17,
+    height: 17,
+    borderRadius: 5,
+  },
   heartOn: {
     backgroundColor: "rgba(244, 63, 94, 0.28)",
   },
@@ -242,6 +299,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "800",
     marginTop: -1,
+  },
+  heartTextCompact: {
+    fontSize: 11,
   },
   heartTextOff: {
     color: "#64748b",
@@ -279,6 +339,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 7,
   },
+  rocketDockCompact: {
+    minWidth: 68,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 10,
+    left: 8,
+  },
   rocketLabel: {
     color: "#a5f3fc",
     fontSize: 9,
@@ -291,6 +358,10 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     lineHeight: 24,
     marginTop: 1,
+  },
+  rocketCountCompact: {
+    fontSize: 17,
+    lineHeight: 19,
   },
   droneBadge: {
     flexDirection: "row",

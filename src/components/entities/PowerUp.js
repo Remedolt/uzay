@@ -26,12 +26,6 @@ const STYLES = {
     color: "#ede9fe",
     icon: "◉",
   },
-  [POWERUP_TYPE.ROCKET]: {
-    border: "#22d3ee",
-    bg: "rgba(34, 211, 238, 0.28)",
-    color: "#cffafe",
-    icon: "▲",
-  },
 };
 
 export function PowerUp({ x, y, width, height, type }) {

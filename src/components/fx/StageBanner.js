@@ -4,7 +4,7 @@ import { Animated, StyleSheet, Text, View } from "react-native";
 export function StageBanner({ title, subtitle, kind }) {
   const scale = useRef(new Animated.Value(1)).current;
   const flash = useRef(new Animated.Value(0)).current;
-  const boss = kind === "boss" || /PATRON/i.test(title || "");
+  const boss = kind === "boss" || /PATRON|AM[İI]RAL/i.test(title || "");
 
   useEffect(() => {
     if (!title) return undefined;

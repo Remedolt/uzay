@@ -24,6 +24,9 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      - name: Use GitHub Pages project path
+        run: |
+          node -e "const fs=require('fs'); const p='app.json'; const j=JSON.parse(fs.readFileSync(p,'utf8')); j.expo.experiments=j.expo.experiments||{}; j.expo.experiments.baseUrl='/uzay'; fs.writeFileSync(p, JSON.stringify(j,null,2)+'\n');"
       - run: npx expo export -p web
       - name: Add .nojekyll
         run: touch dist/.nojekyll

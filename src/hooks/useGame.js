@@ -6,6 +6,7 @@ import {
   ENEMY,
   ENEMY_MODES,
   INITIAL_LIVES,
+  KAMIKAZE,
   LASER,
   MAX_LIVES,
   METEOR,
@@ -15,6 +16,7 @@ import {
   PLAYER_ROCKET,
   POINTS_PER_BOSS,
   POINTS_PER_ENEMY,
+  POINTS_PER_KAMIKAZE,
   POINTS_PER_METEOR,
   POINTS_PER_RAIDER,
   POWERUP,
@@ -24,7 +26,9 @@ import {
   SHIPS,
   ULTIMATE,
   WEAPON,
+  ZEUS,
   getShip,
+  stageScale,
   stageConfig,
 } from "../constants/game";
 import {
@@ -65,6 +69,7 @@ const initialHud = {
   spawned: 0,
   quota: stageConfig(1).enemyQuota,
   ultimate: 0,
+  zeus: 0,
   paused: false,
   droneCount: 0,
   missiles: 0,
@@ -72,13 +77,11 @@ const initialHud = {
 
 function pickPowerUpType() {
   const r = Math.random();
-  const { life, shield, weapon, drone, rocket } = POWERUP.weights;
+  const { life, shield, weapon, drone } = POWERUP.weights;
   if (r < life) return POWERUP_TYPE.LIFE;
   if (r < life + shield) return POWERUP_TYPE.SHIELD;
   if (r < life + shield + (weapon || 0)) return POWERUP_TYPE.WEAPON;
-  if (r < life + shield + (weapon || 0) + (drone || 0))
-    return POWERUP_TYPE.DRONE;
-  return POWERUP_TYPE.ROCKET;
+  return POWERUP_TYPE.DRONE;
 }
 
 function hudReducer(state, action) {
@@ -109,6 +112,7 @@ function hudReducer(state, action) {
         spawned: 0,
         quota: stageConfig(1).enemyQuota,
         ultimate: 0,
+        zeus: 0,
         paused: false,
         droneCount: 0,
         missiles: 0,
@@ -119,6 +123,7 @@ function hudReducer(state, action) {
         score: action.score,
         ultimate:
           action.ultimate == null ? state.ultimate : action.ultimate,
+        zeus: action.zeus == null ? state.zeus : action.zeus,
         missiles:
           action.missiles == null ? state.missiles : action.missiles,
       };
@@ -126,6 +131,11 @@ function hudReducer(state, action) {
       return {
         ...state,
         ultimate: Math.max(0, Math.min(1, action.value)),
+      };
+    case "zeus":
+      return {
+        ...state,
+        zeus: Math.max(0, Math.min(1, action.value)),
       };
     case "wave":
       return {
@@ -228,6 +238,7 @@ function hudReducer(state, action) {
         level: action.stage || state.stage || 1,
         stage: action.stage || state.stage || 1,
         ultimate: 0,
+        zeus: 0,
         paused: false,
         droneCount: 0,
         missiles: 0,
@@ -257,6 +268,7 @@ function hudReducer(state, action) {
         spawned: 0,
         quota: stageConfig(1).enemyQuota,
         ultimate: 0,
+        zeus: 0,
         droneCount: 0,
         missiles: 0,
         paused: false,
@@ -362,7 +374,7 @@ export function useGame(layout) {
   const [hud, dispatch] = useReducer(hudReducer, initialHud);
   const [shipId, setShipIdState] = useState(SHIPS[0].id);
   const [playerName, setPlayerNameState] = useState(DEFAULT_PLAYER_NAME);
-  const { play, startMusic, stopMusic, setStageMusic } = useSfx();
+  const { play, unlock, startMusic, stopMusic, setStageMusic } = useSfx();
   const playRef = useRef(play);
   playRef.current = play;
   const setStageMusicRef = useRef(setStageMusic);
@@ -400,7 +412,9 @@ export function useGame(layout) {
   const clearAccRef = useRef(0);
   const iFrameRef = useRef(0);
   const ultimateRef = useRef(0);
+  const zeusRef = useRef(0);
   const empPendingRef = useRef(false);
+  const zeusPendingRef = useRef(false);
   const empBurstRef = useRef({ t: 0, x: 0, y: 0 });
   const bossBurstRef = useRef({ t: 0, x: 0, y: 0 });
   const shakeRef = useRef({ t: 0, x: 0, y: 0, power: 0 });
@@ -458,7 +472,9 @@ export function useGame(layout) {
     clearAccRef.current = 0;
     iFrameRef.current = 0;
     ultimateRef.current = 0;
+    zeusRef.current = 0;
     empPendingRef.current = false;
+    zeusPendingRef.current = false;
     empBurstRef.current = { t: 0, x: 0, y: 0 };
     bossBurstRef.current = { t: 0, x: 0, y: 0 };
     shakeRef.current = { t: 0, x: 0, y: 0, power: 0 };
@@ -484,9 +500,10 @@ export function useGame(layout) {
         shielded: ship.startShield,
         shieldHp: ship.startShield ? ship.shieldMax : 0,
       });
+      unlock();
       startMusic(1, false);
     },
-    [resetWorld, startMusic]
+    [resetWorld, startMusic, unlock]
   );
 
   const goToStart = useCallback(() => {
@@ -522,6 +539,13 @@ export function useGame(layout) {
     if (hudRef.current.screen !== SCREEN.PLAYING) return;
     if (ultimateRef.current < 1) return;
     empPendingRef.current = true;
+  }, []);
+
+  const fireZeus = useCallback(() => {
+    if (hudRef.current.paused) return;
+    if (hudRef.current.screen !== SCREEN.PLAYING) return;
+    if (zeusRef.current < 1) return;
+    zeusPendingRef.current = true;
   }, []);
 
   const togglePause = useCallback(() => {
@@ -572,35 +596,7 @@ export function useGame(layout) {
   }, []);
 
   const fireMissile = useCallback(() => {
-    if (hudRef.current.paused) return;
-    if (hudRef.current.screen !== SCREEN.PLAYING) return;
-    const now = Date.now();
-    if (now - rocketGateRef.current < 180) return;
-    if ((rocketAmmoRef.current || 0) <= 0) return;
-    rocketGateRef.current = now;
-    rocketAmmoRef.current -= 1;
-    dispatch({ type: "setMissiles", missiles: rocketAmmoRef.current });
-    const p = playerRef.current;
-    const launch = PLAYER_ROCKET.launchSpeed;
-    missilesRef.current.push({
-      id: uid(),
-      x: p.x + p.width / 2 - PLAYER_ROCKET.width / 2,
-      y: p.y - 10,
-      width: PLAYER_ROCKET.width,
-      height: PLAYER_ROCKET.height,
-      vx: 0,
-      vy: -launch,
-      speed: launch,
-      maxSpeed: PLAYER_ROCKET.speed,
-      accel: PLAYER_ROCKET.accel,
-      turn: PLAYER_ROCKET.turn,
-      life: 0,
-      angle: Math.atan2(0, -launch),
-      fromPlayer: true,
-      damage: PLAYER_ROCKET.damage,
-      targetId: null,
-    });
-    playRef.current("laser");
+    /* Füze sistemi kaldırıldı — Zeus butonu kullanılıyor. */
   }, []);
 
   const spawnMeteor = useCallback(
@@ -629,7 +625,7 @@ export function useGame(layout) {
     const y = 64 + Math.random() * band;
     const variants = RAIDER.variants || [6];
     const variant = variants[Math.floor(Math.random() * variants.length)];
-    const vx = (fromLeft ? 1 : -1) * (RAIDER.speed + stageRef.current * 8);
+    const vx = (fromLeft ? 1 : -1) * (RAIDER.speed + stageRef.current * 8) * stageScale(stageRef.current);
     enemiesRef.current.push({
       id: uid(),
       x: fromLeft ? -RAIDER.width : layout.width,
@@ -660,9 +656,64 @@ export function useGame(layout) {
     });
   }, [layout.width, layout.height]);
 
+  const spawnKamikaze = useCallback(
+    (speed) => {
+      const late = stageScale(stageRef.current);
+      const w = KAMIKAZE.width;
+      const h = KAMIKAZE.height;
+      const player = playerRef.current;
+      const jitter = (Math.random() - 0.5) * Math.min(120, layout.width * 0.18);
+      const x = clamp(
+        (player?.x ?? layout.width / 2) + PLAYER.width / 2 - w / 2 + jitter,
+        0,
+        Math.max(0, layout.width - w)
+      );
+      const y = -h - 8;
+      const spd = Math.min(
+        KAMIKAZE.maxSpeed * late,
+        Math.max(320, speed * KAMIKAZE.speedMul)
+      );
+      const pcx = (player?.x ?? x) + PLAYER.width / 2;
+      const pcy =
+        (player?.y ?? layout.height * 0.78) + PLAYER.height / 2;
+      const dx = pcx - (x + w / 2);
+      const dy = Math.max(layout.height * 0.5, pcy - (y + h / 2));
+      const dist = Math.hypot(dx, dy) || 1;
+      enemiesRef.current.push({
+        id: uid(),
+        x,
+        y,
+        width: w,
+        height: h,
+        speed: spd,
+        vx: (dx / dist) * spd,
+        vy: (dy / dist) * spd,
+        mode: "kamikaze",
+        isKamikaze: true,
+        isBoss: false,
+        hp: KAMIKAZE.hp,
+        maxHp: KAMIKAZE.hp,
+        fireAcc: 0,
+        fireInterval: 99999,
+        variant: 0,
+      });
+      spawnedRef.current += 1;
+      dispatch({
+        type: "wave",
+        spawned: spawnedRef.current,
+        quota: stageConfig(stageRef.current).enemyQuota,
+      });
+    },
+    [layout.width, layout.height]
+  );
+
   const spawnEnemy = useCallback(
     (speed) => {
       const cfg = stageConfig(stageRef.current);
+      if ((cfg.kamikazeChance || 0) > 0 && Math.random() < cfg.kamikazeChance) {
+        spawnKamikaze(speed);
+        return;
+      }
       if ((cfg.raiderChance || 0) > 0 && Math.random() < cfg.raiderChance) {
         spawnRaider();
         return;
@@ -700,6 +751,9 @@ export function useGame(layout) {
       }
 
       const stage = stageRef.current || 1;
+      const late = stageScale(stage);
+      fireInterval = Math.max(520, Math.round(fireInterval / late));
+      laserSpeed = laserSpeed * late;
       const chance = Math.min(
         0.14,
         (ENEMY.shieldChance || 0.08) + (stage - 1) * 0.01
@@ -720,7 +774,7 @@ export function useGame(layout) {
         y: -ENEMY.height,
         width: ENEMY.width,
         height: ENEMY.height,
-        speed: Math.min(ENEMY.maxSpeed, speed * speedMul),
+        speed: Math.min(ENEMY.maxSpeed * late, speed * speedMul),
         baseX: x,
         phase: Math.random() * Math.PI * 2,
         weaveAmp,
@@ -741,7 +795,7 @@ export function useGame(layout) {
         quota: stageConfig(stageRef.current).enemyQuota,
       });
     },
-    [layout.width, spawnRaider]
+    [layout.width, spawnRaider, spawnKamikaze]
   );
 
   const spawnBoss = useCallback(() => {
@@ -874,7 +928,7 @@ export function useGame(layout) {
       const stage = stageRef.current;
       const cfg = stageConfig(stage);
       const weaponLevel = hudRef.current.weaponLevel || 0;
-      const { speed, spawnMs, scoreMul } = difficultyFromLevel(stage);
+      const { speed, spawnMs, scoreMul, late } = difficultyFromLevel(stage);
 
       if (iFrameRef.current > 0) iFrameRef.current -= dt * 1000;
 
@@ -1032,8 +1086,8 @@ export function useGame(layout) {
           }
         } else {
           const enemySpawnMs = Math.max(
-            ENEMY.minSpawnMs,
-            ENEMY.baseSpawnMs - (stage - 1) * 70
+            ENEMY.minSpawnMs / late,
+            (ENEMY.baseSpawnMs - (stage - 1) * 70) / late
           );
           enemyAccRef.current += dt * 1000;
           if (enemyAccRef.current >= enemySpawnMs) {
@@ -1110,7 +1164,7 @@ export function useGame(layout) {
           vx,
           vy,
           speed: launch,
-          maxSpeed: MISSILE.speed + Math.min(90, stage * 10),
+          maxSpeed: (MISSILE.speed + Math.min(90, stage * 10)) * late,
           accel: MISSILE.accel,
           turn: enemy.missileHoming || 90,
           life: 0,
@@ -1151,7 +1205,7 @@ export function useGame(layout) {
           vx: ivx,
           vy: launch,
           speed: launch,
-          maxSpeed: PLASMA.speed + Math.min(40, stage * 4),
+          maxSpeed: (PLASMA.speed + Math.min(40, stage * 4)) * late,
           accel: 90,
           turn: enemy.missileHoming
             ? Math.min((PLASMA.homing || 48) + 12, 72)
@@ -1192,6 +1246,10 @@ export function useGame(layout) {
             const maxY = Math.min(layout.height * 0.36, homeY + 52);
             enemy.y = clamp(homeY + bob, 24, maxY);
           }
+        } else if (enemy.isKamikaze) {
+          enemy.x += (enemy.vx || 0) * dt;
+          enemy.y += Math.max(enemy.speed * 0.9, enemy.vy || enemy.speed) * dt;
+          enemy.angle = Math.atan2(enemy.vx || 0, enemy.vy || enemy.speed);
         } else if (enemy.isRaider) {
           enemy.x += (enemy.vx || RAIDER.speed) * dt;
           enemy.phase += dt * 5;
@@ -1211,6 +1269,10 @@ export function useGame(layout) {
 
         enemy.fireAcc += dt * 1000;
         const interval = enemy.fireInterval || ENEMY.fireIntervalMs;
+
+        if (enemy.isKamikaze) {
+          continue;
+        }
 
         if (enemy.burstLeft > 0) {
           const burstGap =
@@ -1375,6 +1437,7 @@ export function useGame(layout) {
       }
 
       let empThisTick = false;
+      let zeusThisTick = false;
       if (empPendingRef.current) {
         empPendingRef.current = false;
         empThisTick = true;
@@ -1384,6 +1447,7 @@ export function useGame(layout) {
           t: 0.02,
           x: player.x + player.width / 2,
           y: player.y + player.height / 2,
+          kind: "emp",
         };
         shakeRef.current.t = 0.42;
         shakeRef.current.power = Math.max(shakeRef.current.power || 0, 42);
@@ -1393,6 +1457,34 @@ export function useGame(layout) {
           if (!missiles[i].fromPlayer) missiles.splice(i, 1);
         }
       }
+      if (zeusPendingRef.current) {
+        zeusPendingRef.current = false;
+        zeusThisTick = true;
+        zeusRef.current = 0;
+        dispatch({ type: "zeus", value: 0 });
+        empBurstRef.current = {
+          t: 0.02,
+          x: player.x + player.width / 2,
+          y: player.y + player.height / 2,
+          kind: "zeus",
+        };
+        shakeRef.current.t = 0.55;
+        shakeRef.current.power = Math.max(shakeRef.current.power || 0, 56);
+        playRef.current("explode");
+        enemyLasers.length = 0;
+        for (let i = missiles.length - 1; i >= 0; i -= 1) {
+          if (!missiles[i].fromPlayer) missiles.splice(i, 1);
+        }
+      }
+
+      const addCharge = (amount) => {
+        if (zeusThisTick) return;
+        ultimateRef.current = Math.min(1, ultimateRef.current + amount);
+        zeusRef.current = Math.min(
+          1,
+          zeusRef.current + amount / ZEUS.chargeDivisor
+        );
+      };
 
       let gained = 0;
       let livesLost = 0;
@@ -1411,10 +1503,7 @@ export function useGame(layout) {
           destroyedCount += 1;
           gained += Math.round(POINTS_PER_BOSS * scoreMul);
           spawnPowerUp(enemy, 1);
-          ultimateRef.current = Math.min(
-            1,
-            ultimateRef.current + ULTIMATE.perBoss
-          );
+          addCharge(ULTIMATE.perBoss);
           bossBurstRef.current = {
             t: 0.02,
             x: enemy.x + enemy.width / 2,
@@ -1430,19 +1519,22 @@ export function useGame(layout) {
           destroyedCount += 1;
           gained += Math.round(POINTS_PER_RAIDER * scoreMul);
           spawnPowerUp(enemy, 0.4);
-          ultimateRef.current = Math.min(
-            1,
-            ultimateRef.current + ULTIMATE.perEnemy * 1.6
-          );
+          addCharge(ULTIMATE.perEnemy * 1.6);
+          return true;
+        }
+        if (enemy.isKamikaze) {
+          enemy.hp = (enemy.hp || 1) - dmg;
+          if (enemy.hp > 0) return false;
+          destroyedCount += 1;
+          gained += Math.round(POINTS_PER_KAMIKAZE * scoreMul);
+          spawnPowerUp(enemy, 0.35);
+          addCharge(ULTIMATE.perEnemy * 1.4);
           return true;
         }
         destroyedCount += 1;
         gained += Math.round(POINTS_PER_ENEMY * scoreMul);
         spawnPowerUp(enemy, ENEMY.dropChance);
-        ultimateRef.current = Math.min(
-          1,
-          ultimateRef.current + ULTIMATE.perEnemy
-        );
+        addCharge(ULTIMATE.perEnemy);
         return true;
       };
 
@@ -1463,10 +1555,7 @@ export function useGame(layout) {
             destroyedCount += 1;
             gained += Math.round(POINTS_PER_METEOR * scoreMul);
             spawnPowerUp(meteor, POWERUP.dropChance);
-            ultimateRef.current = Math.min(
-              1,
-              ultimateRef.current + ULTIMATE.perMeteor
-            );
+            addCharge(ULTIMATE.perMeteor);
             break;
           }
         }
@@ -1479,18 +1568,16 @@ export function useGame(layout) {
             destroyedCount += 1;
             gained += Math.round(POINTS_PER_METEOR * scoreMul);
             spawnPowerUp(meteor, POWERUP.dropChance);
-            ultimateRef.current = Math.min(
-              1,
-              ultimateRef.current + ULTIMATE.perMeteor
-            );
+            addCharge(ULTIMATE.perMeteor);
             break;
           }
         }
         if (destroyed) continue;
 
-        if (empThisTick) {
+        if (empThisTick || zeusThisTick) {
           destroyedCount += 1;
           gained += Math.round(POINTS_PER_METEOR * scoreMul);
+          if (!zeusThisTick) addCharge(ULTIMATE.perMeteor);
           continue;
         }
 
@@ -1525,10 +1612,10 @@ export function useGame(layout) {
             break;
           }
         }
-        if (!dead && empThisTick) {
+        if (!dead && (empThisTick || zeusThisTick)) {
           if (killEnemy(
             enemy,
-            enemy.isBoss ? ULTIMATE.empBossDamage : 99,
+            zeusThisTick ? 9999 : enemy.isBoss ? ULTIMATE.empBossDamage : 99,
             true
           ))
             dead = true;
@@ -1538,9 +1625,24 @@ export function useGame(layout) {
         if (enemy.isRaider) {
           if (enemy.x > layout.width + 72 || enemy.x + enemy.width < -72)
             continue;
+        } else if (enemy.isKamikaze) {
+          if (enemy.y > layout.height || enemy.x + enemy.width < -40 || enemy.x > layout.width + 40)
+            continue;
         } else if (!enemy.isBoss && isOffScreenBottom(enemy, layout.height))
           continue;
-        if (hitDrone(enemy)) playRef.current("explode");
+        if (hitDrone(enemy)) {
+          playRef.current("explode");
+          if (enemy.isKamikaze) {
+            killEnemy(enemy, 99, true);
+            continue;
+          }
+        }
+        if (enemy.isKamikaze && aabbIntersects(enemy, player)) {
+          const ram = resolveHazardHit(true);
+          if (ram === "damage") livesLost += 1;
+          playRef.current("explode");
+          continue;
+        }
         const result = resolveHazardHit(aabbIntersects(enemy, player));
         if (result === "damage") livesLost += 1;
         remainingEnemies.push(enemy);
@@ -1618,13 +1720,7 @@ export function useGame(layout) {
               hits: getShip(shipIdRef.current).shieldMax || 1,
             });
           else if (drop.type === POWERUP_TYPE.DRONE) spawnDrone();
-          else if (drop.type === POWERUP_TYPE.ROCKET) {
-            rocketAmmoRef.current = Math.min(
-              PLAYER_ROCKET.maxAmmo,
-              (rocketAmmoRef.current || 0) + 1
-            );
-            dispatch({ type: "grantRocket" });
-          } else {
+          else {
             const atMax =
               (hudRef.current.weaponLevel || 0) >= WEAPON.maxLevel;
             dispatch({ type: "grantWeapon" });
@@ -1655,11 +1751,11 @@ export function useGame(layout) {
           type: "phase",
           phase: "boss",
           bannerKind: "boss",
-          banner: cfg.bossCount > 1 ? "ÇİFTE PATRON" : cfg.bossName || "PATRON",
+          banner: cfg.bossCount > 1 ? "ÇİFTE AMİRAL" : cfg.bossName || "AMİRAL GEMİSİ",
           bannerSub:
             cfg.bossCount > 1
               ? `${cfg.bossName} & ${cfg.bossNameB || "Gölge"}`
-              : `${cfg.name} patronu`,
+              : `${cfg.name} amiral gemisi`,
         });
         spawnBoss();
         playRef.current("levelup");
@@ -1689,11 +1785,18 @@ export function useGame(layout) {
           type: "score",
           score: score + gained,
           ultimate: ultimateRef.current,
+          zeus: zeusRef.current,
         });
       } else if (
-        Math.abs((hudRef.current.ultimate || 0) - ultimateRef.current) > 0.001
+        Math.abs((hudRef.current.ultimate || 0) - ultimateRef.current) > 0.001 ||
+        Math.abs((hudRef.current.zeus || 0) - zeusRef.current) > 0.001
       ) {
-        dispatch({ type: "ultimate", value: ultimateRef.current });
+        dispatch({
+          type: "score",
+          score,
+          ultimate: ultimateRef.current,
+          zeus: zeusRef.current,
+        });
       }
 
       if (hudRef.current.droneCount !== dronesRef.current.length) {
@@ -1761,9 +1864,11 @@ export function useGame(layout) {
     goToStart,
     movePlayerTo,
     fireUltimate,
+    fireZeus,
     togglePause,
     resumeGame,
     fire: spawnLaser,
     fireMissile,
+    unlockAudio: unlock,
   };
 }

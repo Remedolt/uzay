@@ -1,11 +1,19 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 
-const ROWS = [
+const WEB_ROWS = [
   { key: "Fare", val: "Gemiyi hareket ettir" },
-  { key: "Tıkla", val: "Kilitli füze at (FÜZE varsa)" },
   { key: "Otomatik", val: "Lazer kendiliğinden ateşler" },
   { key: "Q", val: "PATLAT EMP — mermileri siler, hasar verir" },
+  { key: "Z", val: "ZEUS — ekrandaki her şeyi yıldırımla yok eder" },
   { key: "ESC", val: "Duraklat / devam" },
+];
+
+const MOBILE_ROWS = [
+  { key: "Sürükle", val: "Parmağınla gemiyi götür" },
+  { key: "Otomatik", val: "Lazer kendiliğinden ateşler" },
+  { key: "PATLAT", val: "Sağ alttaki tuş — EMP patlatır" },
+  { key: "ZEUS", val: "Sol alttaki tuş — yıldırımla herkesi yok eder" },
+  { key: "Geri", val: "Duraklat / devam" },
 ];
 
 const DROPS = [
@@ -13,11 +21,25 @@ const DROPS = [
   { icon: "◈", name: "Kalkan" },
   { icon: "⚡", name: "Silah" },
   { icon: "◉", name: "Yancı" },
-  { icon: "▲", name: "Füze" },
 ];
+
+function isTouchUi() {
+  if (Platform.OS !== "web") return true;
+  if (typeof window === "undefined") return false;
+  try {
+    return (
+      window.matchMedia("(pointer: coarse)").matches ||
+      window.matchMedia("(hover: none)").matches
+    );
+  } catch {
+    return false;
+  }
+}
 
 export function HowToPlay({ visible, onClose }) {
   if (!visible) return null;
+  const mobile = isTouchUi();
+  const rows = mobile ? MOBILE_ROWS : WEB_ROWS;
 
   return (
     <View style={styles.mask}>
@@ -25,10 +47,11 @@ export function HowToPlay({ visible, onClose }) {
       <View style={styles.card}>
         <Text style={styles.title}>Nasıl oynanır</Text>
         <Text style={styles.lead}>
-          Düşman dalgalarını temizle, patronu düşür, aşamaları geç. Öldürdükçe
-          can, kalkan ve füze düşer. Füze tıklayınca en yakın hedefe kilitlenir.
+          {mobile
+            ? "Parmağınla gemiyi sürükle, düşman dalgalarını temizle, amiral gemisini düşür. Öldürdükçe can, kalkan ve silah düşer."
+            : "Düşman dalgalarını temizle, amiral gemisini düşür, aşamaları geç. Öldürdükçe can, kalkan ve silah düşer."}
         </Text>
-        {ROWS.map((row) => (
+        {rows.map((row) => (
           <View key={row.key} style={styles.row}>
             <Text style={styles.key}>{row.key}</Text>
             <Text style={styles.val}>{row.val}</Text>
@@ -37,9 +60,12 @@ export function HowToPlay({ visible, onClose }) {
         <Text style={styles.sub}>Düşmanlar</Text>
         <Text style={styles.hint}>
           Ara sıra mavi kalkanlı gemi çıkar; kalkan bitmeden gemi düşmez.
-          Pembe ışıltılı plazma gemileri yavaş yavaş plazma topu atar. Bazı
-          patronlar lazer yerine plazma kullanır. Patronlar havada gezer.
-          10. aşamadan itibaren iki patron birden gelir.
+          Pembe ışıltılı plazma gemileri yavaş yavaş plazma topu atar. 2. aşamadan
+          sonra çok nadir kızıl kamikaze gemisi ateş etmez, hızlıca üzerine
+          dalar; çarpmazsa ekrandan çıkar. Bazı
+          amiral gemileri lazer yerine plazma kullanır. Amiral gemileri havada gezer.
+          10. aşamadan itibaren iki amiral gemisi birden gelir. 20. aşamadan sonra
+          düşmanlar belirgin şekilde hızlanır.
         </Text>
         <Text style={styles.sub}>Düşenler</Text>
         <View style={styles.drops}>

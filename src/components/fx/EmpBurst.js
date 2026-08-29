@@ -5,13 +5,21 @@ export function EmpBurst({ burst }) {
   const t = burst.t;
   const size = 40 + t * 720;
   const opacity = Math.max(0, 0.55 * (1 - t));
+  const zeus = burst.kind === "zeus";
+  const flashColor = zeus ? "#bae6fd" : "#f8fafc";
+  const ringOuter = zeus
+    ? `rgba(125, 211, 252, ${0.9 * (1 - t)})`
+    : `rgba(224, 242, 254, ${0.85 * (1 - t)})`;
+  const ringInner = zeus
+    ? `rgba(56, 189, 248, ${0.95 * (1 - t)})`
+    : `rgba(34, 211, 238, ${0.9 * (1 - t)})`;
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
       <View
         style={[
           styles.flash,
-          { opacity: 0.42 * (1 - t) * (1 - t) },
+          { opacity: 0.42 * (1 - t) * (1 - t), backgroundColor: flashColor },
         ]}
       />
       <View
@@ -23,7 +31,7 @@ export function EmpBurst({ burst }) {
             left: burst.x - size / 2,
             top: burst.y - size / 2,
             opacity,
-            borderColor: `rgba(224, 242, 254, ${0.85 * (1 - t)})`,
+            borderColor: ringOuter,
           },
         ]}
       />
@@ -36,7 +44,7 @@ export function EmpBurst({ burst }) {
             left: burst.x - size * 0.31,
             top: burst.y - size * 0.31,
             opacity: opacity * 0.8,
-            borderColor: `rgba(34, 211, 238, ${0.9 * (1 - t)})`,
+            borderColor: ringInner,
           },
         ]}
       />
@@ -47,7 +55,6 @@ export function EmpBurst({ burst }) {
 const styles = StyleSheet.create({
   flash: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "#f8fafc",
     zIndex: 18,
   },
   ring: {

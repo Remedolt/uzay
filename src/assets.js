@@ -16,6 +16,8 @@ export const ENEMY_SHIP_IMAGES = [
   require("../assets/enemy-ship-silver-v2.png"),
 ];
 
+export const KAMIKAZE_SHIP_IMAGE = require("../assets/enemy-kamikaze-v2.png");
+
 export const BOSS_SHIP_IMAGES = [
   require("../assets/enemy-boss-v2.png"),
   require("../assets/enemy-boss-cyan-v2.png"),
@@ -41,3 +43,6 @@ export const SPACE_CITY_TOXIC = require("../assets/space-city-toxic.jpg");
 export const SPACE_CITY_LAVA = require("../assets/space-city-lava.jpg");
 export const SPACE_CITY_NEON = require("../assets/space-city-neon.jpg");
 export const SPACE_CITY_STEEL = require("../assets/space-city-steel.jpg");
+export const WEB_INTRO_IMAGE = require("../assets/web-intro.png");
+/** Yazısız intro — yalnızca native (çift başlık olmasın diye). */
+export const MOBILE_INTRO_IMAGE = require("../assets/mobile-intro.jpg");
