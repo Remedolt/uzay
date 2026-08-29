@@ -28,7 +28,7 @@ import {
   SHIPS,
   ULTIMATE,
   WEAPON,
-  ZEUS,
+  PATLAT_CHARGE_DIVISOR,
   getShip,
   stageScale,
   stageConfig,
@@ -505,7 +505,15 @@ export function useGame(layout) {
         shieldHp: ship.startShield ? ship.shieldMax : 0,
       });
       unlock();
-      startMusic(1, false);
+      void startMusic(1, false);
+      if (typeof setTimeout !== "undefined") {
+        setTimeout(() => {
+          void startMusic(1, false);
+        }, 150);
+        setTimeout(() => {
+          void startMusic(1, false);
+        }, 600);
+      }
     },
     [resetWorld, startMusic, unlock]
   );
@@ -1508,10 +1516,11 @@ export function useGame(layout) {
 
       const addCharge = (amount) => {
         if (zeusThisTick) return;
-        ultimateRef.current = Math.min(1, ultimateRef.current + amount);
-        zeusRef.current = Math.min(
+        // DONMA/ZEUS hızlı; PATLAT ona göre %70 daha geç
+        zeusRef.current = Math.min(1, zeusRef.current + amount);
+        ultimateRef.current = Math.min(
           1,
-          zeusRef.current + amount / ZEUS.chargeDivisor
+          ultimateRef.current + amount / PATLAT_CHARGE_DIVISOR
         );
       };
 

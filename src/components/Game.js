@@ -250,7 +250,6 @@ export function Game() {
               icon="❄"
               charge={game.hud.zeus || 0}
               onPress={game.fireZeus}
-              tinyLabel
             />
           ) : (
             <UltimateButton

@@ -29,11 +29,12 @@ export const ULTIMATE = {
   empBossDamage: 14,
 };
 
-/** PATLAT'a göre %50 daha geç dolar.
- * Web: DONMA — zaman yavaşlatır. Native: ZEUS — ekranı temizler.
- */
+/** DONMA şarjı baz alınır; PATLAT buna göre %70 daha geç dolar. */
+export const PATLAT_CHARGE_DIVISOR = 1.7;
+
+/** PATLAT'a göre daha hızlı dolan DONMA / ZEUS metresi. */
 export const ZEUS = {
-  chargeDivisor: 1.5,
+  chargeDivisor: 1,
 };
 
 export const DONMA = {
