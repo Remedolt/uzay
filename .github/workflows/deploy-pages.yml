@@ -2,7 +2,7 @@ name: Deploy GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches: [main, site-root]
   workflow_dispatch:
 
 permissions:
@@ -28,8 +28,11 @@ jobs:
         run: |
           node -e "const fs=require('fs'); const p='app.json'; const j=JSON.parse(fs.readFileSync(p,'utf8')); j.expo.experiments=j.expo.experiments||{}; j.expo.experiments.baseUrl='/uzay'; fs.writeFileSync(p, JSON.stringify(j,null,2)+'\n');"
       - run: npx expo export -p web
-      - name: Add .nojekyll
-        run: touch dist/.nojekyll
+      - name: Add static pages and .nojekyll
+        run: |
+          touch dist/.nojekyll
+          [ -f public/privacy.html ] && cp public/privacy.html dist/privacy.html || true
+          [ -f public/gizlilik.html ] && cp public/gizlilik.html dist/gizlilik.html || true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
