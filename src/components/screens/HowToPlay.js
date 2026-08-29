@@ -4,7 +4,7 @@ const WEB_ROWS = [
   { key: "Fare", val: "Gemiyi hareket ettir" },
   { key: "Otomatik", val: "Lazer kendiliğinden ateşler" },
   { key: "Q", val: "PATLAT EMP — mermileri siler, hasar verir" },
-  { key: "Z", val: "ZEUS — ekrandaki her şeyi yıldırımla yok eder" },
+  { key: "E", val: "DONMA — zamanı yavaşlatır, buz efekti" },
   { key: "ESC", val: "Duraklat / devam" },
 ];
 

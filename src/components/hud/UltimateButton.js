@@ -3,7 +3,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 /**
  * @param {"right"|"left"} side
- * @param {"emp"|"zeus"} variant
+ * @param {"emp"|"zeus"|"freeze"} variant
  */
 export function UltimateButton({
   charge = 0,
@@ -12,6 +12,7 @@ export function UltimateButton({
   variant = "emp",
   label = "PATLAT",
   icon = "☢",
+  tinyLabel = false,
 }) {
   const insets = useSafeAreaInsets();
   const compact = Platform.OS !== "web";
@@ -19,12 +20,25 @@ export function UltimateButton({
   const ready = pct >= 1;
   const pulse = ready ? 0.62 + Math.sin(Date.now() / 160) * 0.38 : 1;
   const degrees = Math.round(pct * 360);
-  const zeus = variant === "zeus";
-  const accent = zeus ? "#38bdf8" : "#22d3ee";
-  const accentSoft = zeus ? "rgba(56,189,248,0.28)" : "rgba(34,211,238,0.28)";
-  const fillNative = zeus ? "rgba(56,189,248,0.38)" : "rgba(34,211,238,0.35)";
-  const readyBorder = zeus ? "#7dd3fc" : "#67e8f9";
-  const coreReadyBg = zeus ? "rgba(12,74,110,0.95)" : "rgba(8,47,73,0.95)";
+  const freeze = variant === "freeze";
+  const zeus = variant === "zeus" || freeze;
+  const accent = freeze ? "#7dd3fc" : zeus ? "#38bdf8" : "#22d3ee";
+  const accentSoft = freeze
+    ? "rgba(125,211,252,0.32)"
+    : zeus
+      ? "rgba(56,189,248,0.28)"
+      : "rgba(34,211,238,0.28)";
+  const fillNative = freeze
+    ? "rgba(186,230,253,0.4)"
+    : zeus
+      ? "rgba(56,189,248,0.38)"
+      : "rgba(34,211,238,0.35)";
+  const readyBorder = freeze ? "#e0f2fe" : zeus ? "#7dd3fc" : "#67e8f9";
+  const coreReadyBg = freeze
+    ? "rgba(8,47,73,0.96)"
+    : zeus
+      ? "rgba(12,74,110,0.95)"
+      : "rgba(8,47,73,0.95)";
 
   return (
     <View
@@ -67,7 +81,14 @@ export function UltimateButton({
             ready && { backgroundColor: coreReadyBg, borderColor: readyBorder },
           ]}
         >
-          <Text style={[styles.nuke, compact && styles.nukeCompact, zeus && styles.zeusIcon]}>
+          <Text
+            style={[
+              styles.nuke,
+              compact && styles.nukeCompact,
+              zeus && styles.zeusIcon,
+              freeze && styles.freezeIcon,
+            ]}
+          >
             {icon}
           </Text>
           <Text
@@ -82,7 +103,15 @@ export function UltimateButton({
           </Text>
         </View>
       </Pressable>
-      <Text style={[styles.label, compact && styles.labelCompact]}>{label}</Text>
+      <Text
+        style={[
+          styles.label,
+          compact && styles.labelCompact,
+          tinyLabel && styles.labelTiny,
+        ]}
+      >
+        {label}
+      </Text>
     </View>
   );
 }
@@ -153,6 +182,12 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 8,
   },
+  freezeIcon: {
+    color: "#e0f2fe",
+    textShadowColor: "rgba(186,230,253,0.95)",
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 10,
+  },
   caption: {
     color: "#67e8f9",
     fontSize: 9,
@@ -176,5 +211,13 @@ const styles = StyleSheet.create({
   labelCompact: {
     marginTop: 3,
     fontSize: 8,
+  },
+  labelTiny: {
+    marginTop: 2,
+    fontSize: 7,
+    fontWeight: "600",
+    letterSpacing: 0.8,
+    color: "#64748b",
+    opacity: 0.85,
   },
 });

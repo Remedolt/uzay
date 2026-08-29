@@ -15,6 +15,7 @@ import { PlasmaBall } from "./entities/PlasmaBall";
 import { PowerUp } from "./entities/PowerUp";
 import { Drone } from "./entities/Drone";
 import { EmpBurst } from "./fx/EmpBurst";
+import { FreezeOverlay } from "./fx/FreezeOverlay";
 import { BossBurst } from "./fx/BossBurst";
 import { SpaceBackground } from "./fx/SpaceBackground";
 import { StageBanner } from "./fx/StageBanner";
@@ -97,7 +98,7 @@ export function Game() {
         e.preventDefault();
         game.fireUltimate();
       }
-      if (e.code === "KeyZ" || e.key === "z" || e.key === "Z") {
+      if (e.code === "KeyE" || e.key === "e" || e.key === "E") {
         if (e.repeat) return;
         e.preventDefault();
         game.fireZeus();
@@ -225,6 +226,14 @@ export function Game() {
               ))}
               <Player {...game.player} />
               <EmpBurst burst={game.empBurst} />
+              <FreezeOverlay
+                active={!!game.freezeActive}
+                intensity={
+                  game.freezeRemain
+                    ? Math.min(1, game.freezeRemain / 4.2)
+                    : 0
+                }
+              />
               <BossBurst burst={game.bossBurst} />
             </>
           )}
@@ -233,14 +242,26 @@ export function Game() {
 
       {playing ? (
         <>
-          <UltimateButton
-            side="left"
-            variant="zeus"
-            label="ZEUS"
-            icon="⚡"
-            charge={game.hud.zeus || 0}
-            onPress={game.fireZeus}
-          />
+          {Platform.OS === "web" ? (
+            <UltimateButton
+              side="left"
+              variant="freeze"
+              label="DONMA"
+              icon="❄"
+              charge={game.hud.zeus || 0}
+              onPress={game.fireZeus}
+              tinyLabel
+            />
+          ) : (
+            <UltimateButton
+              side="left"
+              variant="zeus"
+              label="ZEUS"
+              icon="⚡"
+              charge={game.hud.zeus || 0}
+              onPress={game.fireZeus}
+            />
+          )}
           <UltimateButton
             charge={game.hud.ultimate || 0}
             onPress={game.fireUltimate}

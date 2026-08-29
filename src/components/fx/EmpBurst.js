@@ -6,13 +6,18 @@ export function EmpBurst({ burst }) {
   const size = 40 + t * 720;
   const opacity = Math.max(0, 0.55 * (1 - t));
   const zeus = burst.kind === "zeus";
-  const flashColor = zeus ? "#bae6fd" : "#f8fafc";
-  const ringOuter = zeus
-    ? `rgba(125, 211, 252, ${0.9 * (1 - t)})`
-    : `rgba(224, 242, 254, ${0.85 * (1 - t)})`;
-  const ringInner = zeus
-    ? `rgba(56, 189, 248, ${0.95 * (1 - t)})`
-    : `rgba(34, 211, 238, ${0.9 * (1 - t)})`;
+  const freeze = burst.kind === "freeze";
+  const flashColor = freeze ? "#e0f2fe" : zeus ? "#bae6fd" : "#f8fafc";
+  const ringOuter = freeze
+    ? `rgba(224, 242, 254, ${0.95 * (1 - t)})`
+    : zeus
+      ? `rgba(125, 211, 252, ${0.9 * (1 - t)})`
+      : `rgba(224, 242, 254, ${0.85 * (1 - t)})`;
+  const ringInner = freeze
+    ? `rgba(125, 211, 252, ${0.95 * (1 - t)})`
+    : zeus
+      ? `rgba(56, 189, 248, ${0.95 * (1 - t)})`
+      : `rgba(34, 211, 238, ${0.9 * (1 - t)})`;
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">

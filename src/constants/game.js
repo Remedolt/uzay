@@ -29,9 +29,16 @@ export const ULTIMATE = {
   empBossDamage: 14,
 };
 
-/** PATLAT'a göre %50 daha geç dolar; dolunca ekranı temizler. */
+/** PATLAT'a göre %50 daha geç dolar.
+ * Web: DONMA — zaman yavaşlatır. Native: ZEUS — ekranı temizler.
+ */
 export const ZEUS = {
   chargeDivisor: 1.5,
+};
+
+export const DONMA = {
+  duration: 4.2,
+  timeScale: 0.28,
 };
 
 export const DRONE = {

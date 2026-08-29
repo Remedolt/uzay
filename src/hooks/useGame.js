@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { Platform } from "react-native";
 import {
   BOSS,
   DEFAULT_PLAYER_NAME,
+  DONMA,
   DRONE,
   ENEMY,
   ENEMY_MODES,
@@ -415,6 +417,7 @@ export function useGame(layout) {
   const zeusRef = useRef(0);
   const empPendingRef = useRef(false);
   const zeusPendingRef = useRef(false);
+  const freezeRemainRef = useRef(0);
   const empBurstRef = useRef({ t: 0, x: 0, y: 0 });
   const bossBurstRef = useRef({ t: 0, x: 0, y: 0 });
   const shakeRef = useRef({ t: 0, x: 0, y: 0, power: 0 });
@@ -475,6 +478,7 @@ export function useGame(layout) {
     zeusRef.current = 0;
     empPendingRef.current = false;
     zeusPendingRef.current = false;
+    freezeRemainRef.current = 0;
     empBurstRef.current = { t: 0, x: 0, y: 0 };
     bossBurstRef.current = { t: 0, x: 0, y: 0 };
     shakeRef.current = { t: 0, x: 0, y: 0, power: 0 };
@@ -921,7 +925,7 @@ export function useGame(layout) {
   }, []);
 
   const tick = useCallback(
-    (dt) => {
+    (frameDt) => {
       if (!layout.width || !layout.height) return;
 
       const score = hudRef.current.score;
@@ -930,7 +934,7 @@ export function useGame(layout) {
       const weaponLevel = hudRef.current.weaponLevel || 0;
       const { speed, spawnMs, scoreMul, late } = difficultyFromLevel(stage);
 
-      if (iFrameRef.current > 0) iFrameRef.current -= dt * 1000;
+      if (iFrameRef.current > 0) iFrameRef.current -= frameDt * 1000;
 
       const ship = getShip(shipIdRef.current);
       const maxX = Math.max(0, layout.width - PLAYER.width);
@@ -938,7 +942,7 @@ export function useGame(layout) {
       const minY = 92;
       const phase = phaseRef.current;
 
-      const moveStep = (ship.moveSpeed || 700) * dt;
+      const moveStep = (ship.moveSpeed || 700) * frameDt;
       const targetX = clamp(playerRef.current.targetX ?? playerRef.current.x, 0, maxX);
       const targetY = clamp(
         playerRef.current.targetY ?? playerRef.current.y,
@@ -959,15 +963,15 @@ export function useGame(layout) {
       );
 
       if (empBurstRef.current.t > 0) {
-        empBurstRef.current.t = Math.min(1, empBurstRef.current.t + dt * 1.85);
+        empBurstRef.current.t = Math.min(1, empBurstRef.current.t + frameDt * 1.85);
         if (empBurstRef.current.t >= 1) empBurstRef.current.t = 0;
       }
       if (bossBurstRef.current.t > 0) {
-        bossBurstRef.current.t = Math.min(1, bossBurstRef.current.t + dt * 2.4);
+        bossBurstRef.current.t = Math.min(1, bossBurstRef.current.t + frameDt * 2.4);
         if (bossBurstRef.current.t >= 1) bossBurstRef.current.t = 0;
       }
       if (shakeRef.current.t > 0) {
-        shakeRef.current.t -= dt;
+        shakeRef.current.t -= frameDt;
         const mag = Math.max(0, shakeRef.current.t) * (shakeRef.current.power || 42);
         shakeRef.current.x = (Math.random() - 0.5) * mag;
         shakeRef.current.y = (Math.random() - 0.5) * mag;
@@ -979,19 +983,17 @@ export function useGame(layout) {
       }
 
       if (bannerAccRef.current > 0) {
-        bannerAccRef.current -= dt * 1000;
+        bannerAccRef.current -= frameDt * 1000;
         if (bannerAccRef.current <= 0 && phase !== "clear") {
           dispatch({ type: "banner", banner: "", bannerSub: "", bannerKind: "" });
         }
       }
 
-      scrollRef.current += speed * (0.45 + stage * 0.08) * dt;
-
       const fireMs =
         (WEAPON.fireIntervalMs[
           Math.min(weaponLevel, WEAPON.fireIntervalMs.length - 1)
         ] || LASER.fireIntervalMs) * (ship.fireMul || 1);
-      fireAccRef.current += dt * 1000;
+      fireAccRef.current += frameDt * 1000;
       if (fireAccRef.current >= fireMs) {
         fireAccRef.current = 0;
         spawnLaser();
@@ -1041,11 +1043,11 @@ export function useGame(layout) {
           DRONE.size / 2 +
           side * DRONE.offsetX;
         const ty = playerRef.current.y + DRONE.offsetY + bob;
-        const follow = Math.min(1, 14 * dt);
+        const follow = Math.min(1, 14 * frameDt);
         drone.x += (tx - drone.x) * follow;
         drone.y += (ty - drone.y) * follow;
         drone.x = clamp(drone.x, 0, Math.max(0, layout.width - DRONE.size));
-        drone.fireAcc = (drone.fireAcc || 0) + dt * 1000;
+        drone.fireAcc = (drone.fireAcc || 0) + frameDt * 1000;
         if (drone.fireAcc >= DRONE.fireIntervalMs) {
           drone.fireAcc = 0;
           lasersRef.current.push({
@@ -1062,6 +1064,73 @@ export function useGame(layout) {
         }
       }
 
+      // Activate DONMA (web freeze) or ZEUS wipe (native) before world step
+      let empThisTick = false;
+      let zeusThisTick = false;
+      if (empPendingRef.current) {
+        empPendingRef.current = false;
+        empThisTick = true;
+        ultimateRef.current = 0;
+        dispatch({ type: "ultimate", value: 0 });
+        empBurstRef.current = {
+          t: 0.02,
+          x: playerRef.current.x + playerRef.current.width / 2,
+          y: playerRef.current.y + playerRef.current.height / 2,
+          kind: "emp",
+        };
+        shakeRef.current.t = 0.42;
+        shakeRef.current.power = Math.max(shakeRef.current.power || 0, 42);
+        playRef.current("explode");
+        enemyLasersRef.current.length = 0;
+        for (let i = missilesRef.current.length - 1; i >= 0; i -= 1) {
+          if (!missilesRef.current[i].fromPlayer) missilesRef.current.splice(i, 1);
+        }
+      }
+      if (zeusPendingRef.current) {
+        zeusPendingRef.current = false;
+        zeusRef.current = 0;
+        dispatch({ type: "zeus", value: 0 });
+        if (Platform.OS === "web") {
+          freezeRemainRef.current = DONMA.duration;
+          empBurstRef.current = {
+            t: 0.02,
+            x: playerRef.current.x + playerRef.current.width / 2,
+            y: playerRef.current.y + playerRef.current.height / 2,
+            kind: "freeze",
+          };
+          shakeRef.current.t = 0.28;
+          shakeRef.current.power = Math.max(shakeRef.current.power || 0, 18);
+          playRef.current("levelup");
+        } else {
+          zeusThisTick = true;
+          empBurstRef.current = {
+            t: 0.02,
+            x: playerRef.current.x + playerRef.current.width / 2,
+            y: playerRef.current.y + playerRef.current.height / 2,
+            kind: "zeus",
+          };
+          shakeRef.current.t = 0.55;
+          shakeRef.current.power = Math.max(shakeRef.current.power || 0, 56);
+          playRef.current("explode");
+          enemyLasersRef.current.length = 0;
+          for (let i = missilesRef.current.length - 1; i >= 0; i -= 1) {
+            if (!missilesRef.current[i].fromPlayer)
+              missilesRef.current.splice(i, 1);
+          }
+        }
+      }
+
+      const freezing =
+        Platform.OS === "web" && freezeRemainRef.current > 0;
+      if (freezing) {
+        freezeRemainRef.current = Math.max(
+          0,
+          freezeRemainRef.current - frameDt
+        );
+      }
+      const dt = freezing ? frameDt * DONMA.timeScale : frameDt;
+
+      scrollRef.current += speed * (0.45 + stage * 0.08) * dt;
       spawnAccRef.current += dt * 1000;
       const meteorSpawnMs = spawnMs * 1.8;
       if (spawnAccRef.current >= meteorSpawnMs) {
@@ -1137,7 +1206,7 @@ export function useGame(layout) {
       const powerups = powerupsRef.current;
       const player = playerRef.current;
 
-      for (const laser of lasers) laser.y -= (laser.speed || LASER.speed) * dt;
+      for (const laser of lasers) laser.y -= (laser.speed || LASER.speed) * frameDt;
       for (const meteor of meteors) {
         meteor.y += meteor.speed * dt;
         meteor.rotation += meteor.spin * dt;
@@ -1352,9 +1421,10 @@ export function useGame(layout) {
         if (el.vx) el.x += el.vx * dt;
       }
       for (const missile of missiles) {
-        missile.life = (missile.life || 0) + dt;
+        const mdt = missile.fromPlayer ? frameDt : dt;
+        missile.life = (missile.life || 0) + mdt;
         const isPlasma = missile.kind === "plasma";
-        if (isPlasma) missile.pulse = (missile.pulse || 0) + dt * 9;
+        if (isPlasma) missile.pulse = (missile.pulse || 0) + mdt * 9;
         const mx = missile.x + missile.width / 2;
         const my = missile.y + missile.height / 2;
         let tx;
@@ -1406,7 +1476,7 @@ export function useGame(layout) {
         while (diff > Math.PI) diff -= Math.PI * 2;
         while (diff < -Math.PI) diff += Math.PI * 2;
         const turnRate = missile.turn || (isPlasma ? PLASMA.homing : 90);
-        const maxTurn = (turnRate * Math.PI / 180) * dt;
+        const maxTurn = (turnRate * Math.PI / 180) * mdt;
         ang += clamp(diff, -maxTurn, maxTurn);
         const cap =
           missile.maxSpeed ||
@@ -1425,56 +1495,15 @@ export function useGame(layout) {
         const accel =
           missile.accel ||
           (missile.fromPlayer ? PLAYER_ROCKET.accel : isPlasma ? 90 : MISSILE.accel);
-        missile.speed = Math.min(cap, (missile.speed || launch) + accel * dt);
+        missile.speed = Math.min(cap, (missile.speed || launch) + accel * mdt);
         missile.vx = Math.sin(ang) * missile.speed;
         missile.vy = Math.cos(ang) * missile.speed;
-        missile.x += missile.vx * dt;
-        missile.y += missile.vy * dt;
+        missile.x += missile.vx * mdt;
+        missile.y += missile.vy * mdt;
         if (isPlasma) {
-          missile.x += Math.sin((missile.life || 0) * 8 + (missile.id || 0)) * 20 * dt;
+          missile.x += Math.sin((missile.life || 0) * 8 + (missile.id || 0)) * 20 * mdt;
         }
         missile.angle = ang;
-      }
-
-      let empThisTick = false;
-      let zeusThisTick = false;
-      if (empPendingRef.current) {
-        empPendingRef.current = false;
-        empThisTick = true;
-        ultimateRef.current = 0;
-        dispatch({ type: "ultimate", value: 0 });
-        empBurstRef.current = {
-          t: 0.02,
-          x: player.x + player.width / 2,
-          y: player.y + player.height / 2,
-          kind: "emp",
-        };
-        shakeRef.current.t = 0.42;
-        shakeRef.current.power = Math.max(shakeRef.current.power || 0, 42);
-        playRef.current("explode");
-        enemyLasers.length = 0;
-        for (let i = missiles.length - 1; i >= 0; i -= 1) {
-          if (!missiles[i].fromPlayer) missiles.splice(i, 1);
-        }
-      }
-      if (zeusPendingRef.current) {
-        zeusPendingRef.current = false;
-        zeusThisTick = true;
-        zeusRef.current = 0;
-        dispatch({ type: "zeus", value: 0 });
-        empBurstRef.current = {
-          t: 0.02,
-          x: player.x + player.width / 2,
-          y: player.y + player.height / 2,
-          kind: "zeus",
-        };
-        shakeRef.current.t = 0.55;
-        shakeRef.current.power = Math.max(shakeRef.current.power || 0, 56);
-        playRef.current("explode");
-        enemyLasers.length = 0;
-        for (let i = missiles.length - 1; i >= 0; i -= 1) {
-          if (!missiles[i].fromPlayer) missiles.splice(i, 1);
-        }
       }
 
       const addCharge = (amount) => {
@@ -1859,6 +1888,8 @@ export function useGame(layout) {
     scrollY: scrollRef.current,
     empBurst: empBurstRef.current,
     bossBurst: bossBurstRef.current,
+    freezeActive: Platform.OS === "web" && freezeRemainRef.current > 0,
+    freezeRemain: freezeRemainRef.current,
     shake: { x: shakeRef.current.x, y: shakeRef.current.y },
     startGame,
     goToStart,
