@@ -38,7 +38,9 @@ function sourceUri(mod) {
 }
 
 function sfxVolume(key) {
-  return key === "laser" ? 0.285 : 0.62;
+  // Müzik ayrı (MUSIC_VOLUME); SFX bir kademe daha kısık
+  if (key === "laser") return 0.256;
+  return 0.558;
 }
 
 let webCtx = null;
