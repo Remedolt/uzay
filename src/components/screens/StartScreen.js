@@ -133,6 +133,29 @@ export function StartScreen({
           ))}
         </View>
 
+        <View style={styles.tipsPanel}>
+          <Text style={styles.tipsTitle}>Tuşlar</Text>
+          {(web
+            ? [
+                { k: "Fare", v: "Gemiyi hareket ettir" },
+                { k: "Q", v: "DONDUR — zamanı yavaşlatır" },
+                { k: "E", v: "PATLAT — EMP patlatır" },
+                { k: "ESC", v: "Duraklat / devam" },
+              ]
+            : [
+                { k: "Sürükle", v: "Gemiyi götür" },
+                { k: "PATLAT", v: "Sağ alt — EMP" },
+                { k: "DONDUR", v: "Sol alt — zamanı yavaşlatır" },
+                { k: "Geri", v: "Duraklat / devam" },
+              ]
+          ).map((row) => (
+            <View key={row.k} style={styles.tipRow}>
+              <Text style={styles.tipKey}>{row.k}</Text>
+              <Text style={styles.tipVal}>{row.v}</Text>
+            </View>
+          ))}
+        </View>
+
         <Pressable
           style={[styles.button, { backgroundColor: selected.body }]}
           onPress={start}
@@ -280,6 +303,41 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "800",
     textAlign: "right",
+  },
+  tipsPanel: {
+    width: "100%",
+    maxWidth: 320,
+    marginBottom: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(125, 211, 252, 0.28)",
+    backgroundColor: "rgba(2, 6, 23, 0.65)",
+  },
+  tipsTitle: {
+    color: "#67e8f9",
+    fontSize: 13,
+    fontWeight: "800",
+    letterSpacing: 0.5,
+    marginBottom: 6,
+  },
+  tipRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 4,
+  },
+  tipKey: {
+    minWidth: 58,
+    color: "#22d3ee",
+    fontSize: 11,
+    fontWeight: "800",
+  },
+  tipVal: {
+    flex: 1,
+    color: "#cbd5e1",
+    fontSize: 12,
   },
   button: {
     paddingVertical: 14,

@@ -96,12 +96,12 @@ export function Game() {
       if (e.code === "KeyQ" || e.key === "q" || e.key === "Q") {
         if (e.repeat) return;
         e.preventDefault();
-        game.fireUltimate();
+        game.fireZeus();
       }
       if (e.code === "KeyE" || e.key === "e" || e.key === "E") {
         if (e.repeat) return;
         e.preventDefault();
-        game.fireZeus();
+        game.fireUltimate();
       }
     };
     window.addEventListener("keydown", onKey);
@@ -245,7 +245,7 @@ export function Game() {
           <UltimateButton
             side="left"
             variant="freeze"
-            label="DONMA"
+            label="DONDUR"
             icon="❄"
             charge={game.hud.zeus || 0}
             onPress={game.fireZeus}

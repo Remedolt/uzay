@@ -3,8 +3,8 @@ import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 const WEB_ROWS = [
   { key: "Fare", val: "Gemiyi hareket ettir" },
   { key: "Otomatik", val: "Lazer kendiliğinden ateşler" },
-  { key: "Q", val: "PATLAT EMP — mermileri siler, hasar verir" },
-  { key: "E", val: "DONMA — zamanı yavaşlatır, buz efekti" },
+  { key: "Q", val: "DONDUR — zamanı yavaşlatır, buz efekti" },
+  { key: "E", val: "PATLAT EMP — mermileri siler, hasar verir" },
   { key: "ESC", val: "Duraklat / devam" },
 ];
 
@@ -12,7 +12,7 @@ const MOBILE_ROWS = [
   { key: "Sürükle", val: "Parmağınla gemiyi götür" },
   { key: "Otomatik", val: "Lazer kendiliğinden ateşler" },
   { key: "PATLAT", val: "Sağ alttaki tuş — EMP patlatır" },
-  { key: "DONMA", val: "Sol alttaki tuş — zamanı yavaşlatır, buz efekti" },
+  { key: "DONDUR", val: "Sol alttaki tuş — zamanı yavaşlatır, buz efekti" },
   { key: "Geri", val: "Duraklat / devam" },
 ];
 
