@@ -32,7 +32,7 @@ export const ULTIMATE = {
 /** DONMA şarjı baz alınır; PATLAT buna göre %70 daha geç dolar. */
 export const PATLAT_CHARGE_DIVISOR = 1.7;
 
-/** PATLAT'a göre daha hızlı dolan DONMA / ZEUS metresi. */
+/** PATLAT'a göre daha hızlı dolan DONMA metresi. */
 export const ZEUS = {
   chargeDivisor: 1,
 };

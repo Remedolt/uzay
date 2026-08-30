@@ -12,7 +12,7 @@ const MOBILE_ROWS = [
   { key: "Sürükle", val: "Parmağınla gemiyi götür" },
   { key: "Otomatik", val: "Lazer kendiliğinden ateşler" },
   { key: "PATLAT", val: "Sağ alttaki tuş — EMP patlatır" },
-  { key: "ZEUS", val: "Sol alttaki tuş — yıldırımla herkesi yok eder" },
+  { key: "DONMA", val: "Sol alttaki tuş — zamanı yavaşlatır, buz efekti" },
   { key: "Geri", val: "Duraklat / devam" },
 ];
 

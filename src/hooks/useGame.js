@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
-import { Platform } from "react-native";
 import {
   BOSS,
   DEFAULT_PLAYER_NAME,
@@ -608,7 +607,7 @@ export function useGame(layout) {
   }, []);
 
   const fireMissile = useCallback(() => {
-    /* Füze sistemi kaldırıldı — Zeus butonu kullanılıyor. */
+    /* Füze sistemi kaldırıldı — DONMA kullanılıyor. */
   }, []);
 
   const spawnMeteor = useCallback(
@@ -1072,7 +1071,7 @@ export function useGame(layout) {
         }
       }
 
-      // Activate DONMA (web freeze) or ZEUS wipe (native) before world step
+      // Activate DONMA (time slow + frost) before world step
       let empThisTick = false;
       let zeusThisTick = false;
       if (empPendingRef.current) {
@@ -1098,38 +1097,19 @@ export function useGame(layout) {
         zeusPendingRef.current = false;
         zeusRef.current = 0;
         dispatch({ type: "zeus", value: 0 });
-        if (Platform.OS === "web") {
-          freezeRemainRef.current = DONMA.duration;
-          empBurstRef.current = {
-            t: 0.02,
-            x: playerRef.current.x + playerRef.current.width / 2,
-            y: playerRef.current.y + playerRef.current.height / 2,
-            kind: "freeze",
-          };
-          shakeRef.current.t = 0.28;
-          shakeRef.current.power = Math.max(shakeRef.current.power || 0, 18);
-          playRef.current("levelup");
-        } else {
-          zeusThisTick = true;
-          empBurstRef.current = {
-            t: 0.02,
-            x: playerRef.current.x + playerRef.current.width / 2,
-            y: playerRef.current.y + playerRef.current.height / 2,
-            kind: "zeus",
-          };
-          shakeRef.current.t = 0.55;
-          shakeRef.current.power = Math.max(shakeRef.current.power || 0, 56);
-          playRef.current("explode");
-          enemyLasersRef.current.length = 0;
-          for (let i = missilesRef.current.length - 1; i >= 0; i -= 1) {
-            if (!missilesRef.current[i].fromPlayer)
-              missilesRef.current.splice(i, 1);
-          }
-        }
+        freezeRemainRef.current = DONMA.duration;
+        empBurstRef.current = {
+          t: 0.02,
+          x: playerRef.current.x + playerRef.current.width / 2,
+          y: playerRef.current.y + playerRef.current.height / 2,
+          kind: "freeze",
+        };
+        shakeRef.current.t = 0.28;
+        shakeRef.current.power = Math.max(shakeRef.current.power || 0, 18);
+        playRef.current("levelup");
       }
 
-      const freezing =
-        Platform.OS === "web" && freezeRemainRef.current > 0;
+      const freezing = freezeRemainRef.current > 0;
       if (freezing) {
         freezeRemainRef.current = Math.max(
           0,
@@ -1897,7 +1877,7 @@ export function useGame(layout) {
     scrollY: scrollRef.current,
     empBurst: empBurstRef.current,
     bossBurst: bossBurstRef.current,
-    freezeActive: Platform.OS === "web" && freezeRemainRef.current > 0,
+    freezeActive: freezeRemainRef.current > 0,
     freezeRemain: freezeRemainRef.current,
     shake: { x: shakeRef.current.x, y: shakeRef.current.y },
     startGame,

@@ -242,25 +242,14 @@ export function Game() {
 
       {playing ? (
         <>
-          {Platform.OS === "web" ? (
-            <UltimateButton
-              side="left"
-              variant="freeze"
-              label="DONMA"
-              icon="❄"
-              charge={game.hud.zeus || 0}
-              onPress={game.fireZeus}
-            />
-          ) : (
-            <UltimateButton
-              side="left"
-              variant="zeus"
-              label="ZEUS"
-              icon="⚡"
-              charge={game.hud.zeus || 0}
-              onPress={game.fireZeus}
-            />
-          )}
+          <UltimateButton
+            side="left"
+            variant="freeze"
+            label="DONMA"
+            icon="❄"
+            charge={game.hud.zeus || 0}
+            onPress={game.fireZeus}
+          />
           <UltimateButton
             charge={game.hud.ultimate || 0}
             onPress={game.fireUltimate}

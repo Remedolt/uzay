@@ -1,8 +1,10 @@
 import { Platform, StyleSheet, View } from "react-native";
 
-/** Web-only frost veil while DONMA (time slow) is active. */
+const WEB = Platform.OS === "web";
+
+/** Frost veil while DONMA (time slow) is active. */
 export function FreezeOverlay({ active = false, intensity = 1 }) {
-  if (Platform.OS !== "web" || !active) return null;
+  if (!active) return null;
   const a = Math.max(0.15, Math.min(1, intensity));
 
   return (
@@ -12,8 +14,12 @@ export function FreezeOverlay({ active = false, intensity = 1 }) {
           styles.veil,
           {
             opacity: 0.22 + a * 0.18,
-            backgroundImage:
-              "radial-gradient(ellipse at 50% 40%, rgba(186,230,253,0.22) 0%, rgba(14,165,233,0.12) 42%, rgba(2,6,23,0.05) 72%, transparent 100%)",
+            ...(WEB
+              ? {
+                  backgroundImage:
+                    "radial-gradient(ellipse at 50% 40%, rgba(186,230,253,0.22) 0%, rgba(14,165,233,0.12) 42%, rgba(2,6,23,0.05) 72%, transparent 100%)",
+                }
+              : { backgroundColor: "rgba(125, 211, 252, 0.22)" }),
           },
         ]}
       />
@@ -33,7 +39,7 @@ export function FreezeOverlay({ active = false, intensity = 1 }) {
                 width: 3 + (i % 3),
                 height: 3 + (i % 3),
                 opacity: 0.35 + (i % 5) * 0.1,
-                animationDelay: `${(i % 7) * 0.18}s`,
+                ...(WEB ? { animationDelay: `${(i % 7) * 0.18}s` } : null),
               },
             ]}
           />
@@ -60,9 +66,15 @@ const styles = StyleSheet.create({
     top: -30,
     width: "48%",
     height: "38%",
-    backgroundImage:
-      "radial-gradient(circle at 20% 20%, rgba(224,242,254,0.55) 0%, rgba(125,211,252,0.18) 40%, transparent 70%)",
-    filter: "blur(1px)",
+    borderBottomRightRadius: 220,
+    backgroundColor: "rgba(224, 242, 254, 0.22)",
+    ...(WEB
+      ? {
+          backgroundImage:
+            "radial-gradient(circle at 20% 20%, rgba(224,242,254,0.55) 0%, rgba(125,211,252,0.18) 40%, transparent 70%)",
+          filter: "blur(1px)",
+        }
+      : null),
   },
   frostTR: {
     position: "absolute",
@@ -70,8 +82,14 @@ const styles = StyleSheet.create({
     top: -20,
     width: "42%",
     height: "34%",
-    backgroundImage:
-      "radial-gradient(circle at 80% 15%, rgba(240,249,255,0.5) 0%, rgba(56,189,248,0.16) 45%, transparent 72%)",
+    borderBottomLeftRadius: 200,
+    backgroundColor: "rgba(240, 249, 255, 0.18)",
+    ...(WEB
+      ? {
+          backgroundImage:
+            "radial-gradient(circle at 80% 15%, rgba(240,249,255,0.5) 0%, rgba(56,189,248,0.16) 45%, transparent 72%)",
+        }
+      : null),
   },
   frostBL: {
     position: "absolute",
@@ -79,8 +97,14 @@ const styles = StyleSheet.create({
     bottom: -25,
     width: "44%",
     height: "32%",
-    backgroundImage:
-      "radial-gradient(circle at 15% 85%, rgba(186,230,253,0.42) 0%, rgba(14,165,233,0.14) 48%, transparent 75%)",
+    borderTopRightRadius: 200,
+    backgroundColor: "rgba(186, 230, 253, 0.16)",
+    ...(WEB
+      ? {
+          backgroundImage:
+            "radial-gradient(circle at 15% 85%, rgba(186,230,253,0.42) 0%, rgba(14,165,233,0.14) 48%, transparent 75%)",
+        }
+      : null),
   },
   frostBR: {
     position: "absolute",
@@ -88,8 +112,14 @@ const styles = StyleSheet.create({
     bottom: -20,
     width: "46%",
     height: "36%",
-    backgroundImage:
-      "radial-gradient(circle at 85% 90%, rgba(224,242,254,0.48) 0%, rgba(56,189,248,0.15) 42%, transparent 70%)",
+    borderTopLeftRadius: 220,
+    backgroundColor: "rgba(224, 242, 254, 0.18)",
+    ...(WEB
+      ? {
+          backgroundImage:
+            "radial-gradient(circle at 85% 90%, rgba(224,242,254,0.48) 0%, rgba(56,189,248,0.15) 42%, transparent 70%)",
+        }
+      : null),
   },
   sparkleRow: {
     ...StyleSheet.absoluteFillObject,
@@ -98,15 +128,20 @@ const styles = StyleSheet.create({
     position: "absolute",
     borderRadius: 999,
     backgroundColor: "#e0f2fe",
-    boxShadow: "0 0 6px rgba(186,230,253,0.9)",
-    ...(Platform.OS === "web"
+    ...(WEB
       ? {
+          boxShadow: "0 0 6px rgba(186,230,253,0.9)",
           animationName: "uzay-flake-drift",
           animationDuration: "2.8s",
           animationIterationCount: "infinite",
           animationTimingFunction: "ease-in-out",
         }
-      : null),
+      : {
+          shadowColor: "#bae6fd",
+          shadowOpacity: 0.9,
+          shadowRadius: 4,
+          shadowOffset: { width: 0, height: 0 },
+        }),
   },
   edgeTop: {
     position: "absolute",
@@ -114,8 +149,14 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
     height: 56,
-    backgroundImage:
-      "linear-gradient(to bottom, rgba(186,230,253,0.35), transparent)",
+    backgroundColor: "rgba(186, 230, 253, 0.22)",
+    ...(WEB
+      ? {
+          backgroundColor: "transparent",
+          backgroundImage:
+            "linear-gradient(to bottom, rgba(186,230,253,0.35), transparent)",
+        }
+      : null),
   },
   edgeBottom: {
     position: "absolute",
@@ -123,12 +164,18 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     height: 64,
-    backgroundImage:
-      "linear-gradient(to top, rgba(125,211,252,0.28), transparent)",
+    backgroundColor: "rgba(125, 211, 252, 0.18)",
+    ...(WEB
+      ? {
+          backgroundColor: "transparent",
+          backgroundImage:
+            "linear-gradient(to top, rgba(125,211,252,0.28), transparent)",
+        }
+      : null),
   },
 });
 
-if (Platform.OS === "web" && typeof document !== "undefined") {
+if (WEB && typeof document !== "undefined") {
   const id = "uzay-freeze-keyframes";
   if (!document.getElementById(id)) {
     const style = document.createElement("style");
