@@ -38,7 +38,7 @@ function sourceUri(mod) {
 }
 
 function sfxVolume(key) {
-  return key === "laser" ? 0.38 : 0.62;
+  return key === "laser" ? 0.285 : 0.62;
 }
 
 let webCtx = null;
@@ -86,12 +86,12 @@ function makeHtmlAudio(mod, { loop = false, volume = 1 } = {}) {
   return el;
 }
 
-function playHtml(el) {
+function playHtml(el, { restart = true } = {}) {
   if (!el) return Promise.resolve();
   const kick = () => {
     try {
       el.muted = false;
-      if (el.currentTime > 0.05) el.currentTime = 0;
+      if (restart && el.currentTime > 0.05) el.currentTime = 0;
     } catch {
     }
     try {
@@ -239,7 +239,8 @@ export function useSfx() {
     } catch {
     }
     let el = webMusicRef.current;
-    if (!el || el._trackIdx !== idx) {
+    const sameTrack = el && el._trackIdx === idx;
+    if (!sameTrack) {
       if (el) {
         try {
           el.pause();
@@ -249,11 +250,15 @@ export function useSfx() {
       el = makeHtmlAudio(MUSIC_TRACKS[idx], { loop: true, volume: vol });
       if (el) el._trackIdx = idx;
       webMusicRef.current = el;
-    } else {
-      el.volume = vol;
+      await playHtml(el, { restart: true });
+      return;
     }
-    await playHtml(el);
-  }, []);
+    el.volume = vol;
+    el.loop = true;
+    // Aşama değişince başa alma — sadece durmuşsa devam ettir / bitince loop zaten var
+    if (el.paused) {
+      await playHtml(el, { restart: false });
+    }
 
   const applyWanted = useCallback(async () => {
     if (WEB) {
@@ -271,7 +276,14 @@ export function useSfx() {
         const status = await musicRef.current.getStatusAsync();
         if (status.isLoaded) {
           await musicRef.current.setVolumeAsync(vol);
-          if (!status.isPlaying) await restartNative(musicRef.current);
+          // Aynı track — aşamada yeniden başlatma; sadece durmuşsa devam
+          if (!status.isPlaying) {
+            try {
+              await musicRef.current.playAsync();
+            } catch {
+              await restartNative(musicRef.current);
+            }
+          }
         }
         return;
       }
