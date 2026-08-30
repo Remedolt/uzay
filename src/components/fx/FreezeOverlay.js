@@ -2,10 +2,10 @@ import { Platform, StyleSheet, View } from "react-native";
 
 const WEB = Platform.OS === "web";
 
-/** Frost veil while DONMA (time slow) is active. */
+/** Full-screen frost veil while DONMA (time slow) is active. */
 export function FreezeOverlay({ active = false, intensity = 1 }) {
   if (!active) return null;
-  const a = Math.max(0.15, Math.min(1, intensity));
+  const a = Math.max(0.2, Math.min(1, intensity));
 
   return (
     <View style={styles.wrap} pointerEvents="none">
@@ -13,40 +13,53 @@ export function FreezeOverlay({ active = false, intensity = 1 }) {
         style={[
           styles.veil,
           {
-            opacity: 0.22 + a * 0.18,
+            opacity: 0.28 + a * 0.22,
+            backgroundColor: "rgba(125, 211, 252, 0.32)",
             ...(WEB
               ? {
                   backgroundImage:
-                    "radial-gradient(ellipse at 50% 40%, rgba(186,230,253,0.22) 0%, rgba(14,165,233,0.12) 42%, rgba(2,6,23,0.05) 72%, transparent 100%)",
+                    "linear-gradient(180deg, rgba(224,242,254,0.42) 0%, rgba(125,211,252,0.28) 35%, rgba(56,189,248,0.22) 70%, rgba(186,230,253,0.38) 100%)",
                 }
-              : { backgroundColor: "rgba(125, 211, 252, 0.22)" }),
+              : null),
           },
         ]}
       />
-      <View style={[styles.frostTL, { opacity: 0.35 + a * 0.35 }]} />
-      <View style={[styles.frostTR, { opacity: 0.32 + a * 0.3 }]} />
-      <View style={[styles.frostBL, { opacity: 0.28 + a * 0.28 }]} />
-      <View style={[styles.frostBR, { opacity: 0.3 + a * 0.32 }]} />
-      <View style={[styles.sparkleRow, { opacity: 0.4 + a * 0.35 }]}>
-        {Array.from({ length: 14 }, (_, i) => (
+      <View
+        style={[
+          styles.sheet,
+          {
+            opacity: 0.18 + a * 0.2,
+            ...(WEB
+              ? {
+                  backgroundImage:
+                    "radial-gradient(ellipse at 50% 50%, rgba(240,249,255,0.35) 0%, rgba(125,211,252,0.12) 55%, transparent 100%)",
+                }
+              : { backgroundColor: "rgba(224, 242, 254, 0.2)" }),
+          },
+        ]}
+      />
+      <View style={[styles.edgeTop, { opacity: 0.55 * a }]} />
+      <View style={[styles.edgeBottom, { opacity: 0.5 * a }]} />
+      <View style={[styles.edgeLeft, { opacity: 0.4 * a }]} />
+      <View style={[styles.edgeRight, { opacity: 0.4 * a }]} />
+      <View style={[styles.sparkleRow, { opacity: 0.45 + a * 0.35 }]}>
+        {Array.from({ length: 18 }, (_, i) => (
           <View
             key={i}
             style={[
               styles.flake,
               {
-                left: `${(i * 7.1 + (i % 3) * 2.4) % 100}%`,
-                top: `${12 + ((i * 17) % 76)}%`,
-                width: 3 + (i % 3),
-                height: 3 + (i % 3),
-                opacity: 0.35 + (i % 5) * 0.1,
-                ...(WEB ? { animationDelay: `${(i % 7) * 0.18}s` } : null),
+                left: `${(i * 5.7 + (i % 4) * 3.1) % 100}%`,
+                top: `${8 + ((i * 13) % 84)}%`,
+                width: 2 + (i % 4),
+                height: 2 + (i % 4),
+                opacity: 0.4 + (i % 5) * 0.1,
+                ...(WEB ? { animationDelay: `${(i % 7) * 0.16}s` } : null),
               },
             ]}
           />
         ))}
       </View>
-      <View style={[styles.edgeTop, { opacity: 0.45 * a }]} />
-      <View style={[styles.edgeBottom, { opacity: 0.4 * a }]} />
     </View>
   );
 }
@@ -60,66 +73,8 @@ const styles = StyleSheet.create({
   veil: {
     ...StyleSheet.absoluteFillObject,
   },
-  frostTL: {
-    position: "absolute",
-    left: -40,
-    top: -30,
-    width: "48%",
-    height: "38%",
-    borderBottomRightRadius: 220,
-    backgroundColor: "rgba(224, 242, 254, 0.22)",
-    ...(WEB
-      ? {
-          backgroundImage:
-            "radial-gradient(circle at 20% 20%, rgba(224,242,254,0.55) 0%, rgba(125,211,252,0.18) 40%, transparent 70%)",
-          filter: "blur(1px)",
-        }
-      : null),
-  },
-  frostTR: {
-    position: "absolute",
-    right: -30,
-    top: -20,
-    width: "42%",
-    height: "34%",
-    borderBottomLeftRadius: 200,
-    backgroundColor: "rgba(240, 249, 255, 0.18)",
-    ...(WEB
-      ? {
-          backgroundImage:
-            "radial-gradient(circle at 80% 15%, rgba(240,249,255,0.5) 0%, rgba(56,189,248,0.16) 45%, transparent 72%)",
-        }
-      : null),
-  },
-  frostBL: {
-    position: "absolute",
-    left: -20,
-    bottom: -25,
-    width: "44%",
-    height: "32%",
-    borderTopRightRadius: 200,
-    backgroundColor: "rgba(186, 230, 253, 0.16)",
-    ...(WEB
-      ? {
-          backgroundImage:
-            "radial-gradient(circle at 15% 85%, rgba(186,230,253,0.42) 0%, rgba(14,165,233,0.14) 48%, transparent 75%)",
-        }
-      : null),
-  },
-  frostBR: {
-    position: "absolute",
-    right: -25,
-    bottom: -20,
-    width: "46%",
-    height: "36%",
-    borderTopLeftRadius: 220,
-    backgroundColor: "rgba(224, 242, 254, 0.18)",
-    ...(WEB
-      ? {
-          backgroundImage:
-            "radial-gradient(circle at 85% 90%, rgba(224,242,254,0.48) 0%, rgba(56,189,248,0.15) 42%, transparent 70%)",
-        }
-      : null),
+  sheet: {
+    ...StyleSheet.absoluteFillObject,
   },
   sparkleRow: {
     ...StyleSheet.absoluteFillObject,
@@ -127,10 +82,10 @@ const styles = StyleSheet.create({
   flake: {
     position: "absolute",
     borderRadius: 999,
-    backgroundColor: "#e0f2fe",
+    backgroundColor: "#f0fdff",
     ...(WEB
       ? {
-          boxShadow: "0 0 6px rgba(186,230,253,0.9)",
+          boxShadow: "0 0 8px rgba(186,230,253,0.95)",
           animationName: "uzay-flake-drift",
           animationDuration: "2.8s",
           animationIterationCount: "infinite",
@@ -148,13 +103,13 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     top: 0,
-    height: 56,
-    backgroundColor: "rgba(186, 230, 253, 0.22)",
+    height: "18%",
+    backgroundColor: "rgba(186, 230, 253, 0.35)",
     ...(WEB
       ? {
           backgroundColor: "transparent",
           backgroundImage:
-            "linear-gradient(to bottom, rgba(186,230,253,0.35), transparent)",
+            "linear-gradient(to bottom, rgba(224,242,254,0.55), transparent)",
         }
       : null),
   },
@@ -163,13 +118,43 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    height: 64,
-    backgroundColor: "rgba(125, 211, 252, 0.18)",
+    height: "20%",
+    backgroundColor: "rgba(125, 211, 252, 0.3)",
     ...(WEB
       ? {
           backgroundColor: "transparent",
           backgroundImage:
-            "linear-gradient(to top, rgba(125,211,252,0.28), transparent)",
+            "linear-gradient(to top, rgba(125,211,252,0.5), transparent)",
+        }
+      : null),
+  },
+  edgeLeft: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: "14%",
+    backgroundColor: "rgba(186, 230, 253, 0.18)",
+    ...(WEB
+      ? {
+          backgroundColor: "transparent",
+          backgroundImage:
+            "linear-gradient(to right, rgba(186,230,253,0.4), transparent)",
+        }
+      : null),
+  },
+  edgeRight: {
+    position: "absolute",
+    right: 0,
+    top: 0,
+    bottom: 0,
+    width: "14%",
+    backgroundColor: "rgba(186, 230, 253, 0.18)",
+    ...(WEB
+      ? {
+          backgroundColor: "transparent",
+          backgroundImage:
+            "linear-gradient(to left, rgba(186,230,253,0.4), transparent)",
         }
       : null),
   },
@@ -183,7 +168,7 @@ if (WEB && typeof document !== "undefined") {
     style.textContent = `
       @keyframes uzay-flake-drift {
         0% { transform: translateY(0) rotate(0deg); opacity: 0.35; }
-        50% { transform: translateY(10px) rotate(18deg); opacity: 0.75; }
+        50% { transform: translateY(10px) rotate(18deg); opacity: 0.8; }
         100% { transform: translateY(0) rotate(0deg); opacity: 0.35; }
       }
     `;

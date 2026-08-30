@@ -38,9 +38,8 @@ function sourceUri(mod) {
 }
 
 function sfxVolume(key) {
-  // Müzik ayrı (MUSIC_VOLUME); SFX bir kademe daha kısık
-  if (key === "laser") return 0.256;
-  return 0.558;
+  // Silah / patlama vb. %15 daha kısık; müzik ayrı (MUSIC_VOLUME)
+  return key === "laser" ? 0.242 : 0.527;
 }
 
 let webCtx = null;
