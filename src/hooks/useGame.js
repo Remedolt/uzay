@@ -392,6 +392,7 @@ export function useGame(layout) {
     y: 0,
     width: PLAYER.width,
     height: PLAYER.height,
+    bank: 0,
   });
   const lasersRef = useRef([]);
   const meteorsRef = useRef([]);
@@ -441,6 +442,7 @@ export function useGame(layout) {
     playerRef.current.targetX = playerRef.current.x;
     playerRef.current.y = playerRestY(layout);
     playerRef.current.targetY = playerRef.current.y;
+    playerRef.current.bank = 0;
   }, [layout.width, layout.height]);
 
   const setShipId = useCallback((id) => {
@@ -489,6 +491,7 @@ export function useGame(layout) {
       playerRef.current.targetX = x;
       playerRef.current.y = playerRestY(layout);
       playerRef.current.targetY = playerRef.current.y;
+      playerRef.current.bank = 0;
     }
   }, [layout.width, layout.height]);
 
@@ -958,8 +961,9 @@ export function useGame(layout) {
       );
       const dx = targetX - playerRef.current.x;
       const dy = targetY - playerRef.current.y;
+      const stepX = clamp(dx, -moveStep, moveStep);
       playerRef.current.x = clamp(
-        playerRef.current.x + clamp(dx, -moveStep, moveStep),
+        playerRef.current.x + stepX,
         0,
         maxX
       );
@@ -968,6 +972,13 @@ export function useGame(layout) {
         minY,
         maxY
       );
+      // Hafif yatış — sağa/sola giderken kanat hissi
+      const steer =
+        moveStep > 0.001 ? clamp(stepX / moveStep, -1, 1) : 0;
+      const targetBank = steer * 8;
+      const bank = playerRef.current.bank || 0;
+      playerRef.current.bank =
+        bank + (targetBank - bank) * Math.min(1, frameDt * 12);
 
       if (empBurstRef.current.t > 0) {
         empBurstRef.current.t = Math.min(1, empBurstRef.current.t + frameDt * 1.85);

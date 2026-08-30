@@ -8,11 +8,11 @@ export function StageBanner({ title, subtitle, kind }) {
 
   useEffect(() => {
     if (!title) return undefined;
-    scale.setValue(boss ? 0.72 : 0.9);
+    scale.setValue(boss ? 0.68 : 0.9);
     flash.setValue(boss ? 1 : 0);
     const enter = Animated.parallel([
       Animated.spring(scale, {
-        toValue: 1,
+        toValue: boss ? 0.95 : 1,
         friction: 6.8,
         tension: 140,
         useNativeDriver: true,
@@ -75,21 +75,21 @@ const styles = StyleSheet.create({
     borderColor: "rgba(251, 191, 36, 0.45)",
   },
   bossCard: {
-    minWidth: 240,
-    paddingVertical: 16,
-    paddingHorizontal: 26,
+    minWidth: 228,
+    paddingVertical: 15,
+    paddingHorizontal: 25,
     borderColor: "rgba(248, 113, 113, 0.75)",
     backgroundColor: "rgba(69, 10, 10, 0.82)",
     shadowColor: "#f43f5e",
     shadowOpacity: 0.65,
-    shadowRadius: 18,
+    shadowRadius: 17,
     shadowOffset: { width: 0, height: 0 },
   },
   alert: {
     color: "#fecaca",
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "800",
-    letterSpacing: 4,
+    letterSpacing: 3.8,
     marginBottom: 4,
   },
   title: {
@@ -100,11 +100,11 @@ const styles = StyleSheet.create({
   },
   bossTitle: {
     color: "#fff1f2",
-    fontSize: 34,
-    letterSpacing: 4,
+    fontSize: 32,
+    letterSpacing: 3.8,
     textShadowColor: "rgba(248, 113, 113, 0.9)",
     textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 12,
+    textShadowRadius: 11,
   },
   sub: {
     color: "#cbd5e1",
@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
   },
   bossSub: {
     color: "#fecdd3",
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "700",
   },
 });

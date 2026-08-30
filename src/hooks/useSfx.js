@@ -38,8 +38,8 @@ function sourceUri(mod) {
 }
 
 function sfxVolume(key) {
-  // Silah / patlama vb. %15 daha kısık; müzik ayrı (MUSIC_VOLUME)
-  return key === "laser" ? 0.242 : 0.527;
+  // Silah / patlama vb. müzikten ayrı; birikimli kısma
+  return key === "laser" ? 0.235 : 0.511;
 }
 
 let webCtx = null;

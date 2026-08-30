@@ -11,13 +11,23 @@ export function Player({
   source,
   preview,
   shielded = false,
+  bank = 0,
 }) {
   const ship = SHIPS.find((s) => s.id === shipId) || SHIPS[0];
   const img = source || SHIP_IMAGES[ship.id] || SHIP_IMAGES.aurora;
+  const tilt = preview ? 0 : Math.max(-10, Math.min(10, bank || 0));
+  const wingFlex = preview ? 0 : Math.abs(tilt) * 0.004;
   const style = [
     styles.wrap,
     preview ? styles.preview : { left: x, top: y, width, height },
     preview && { width, height },
+    {
+      transform: [
+        { rotate: `${tilt}deg` },
+        { scaleX: 1 + wingFlex },
+        { scaleY: 1 - wingFlex * 0.35 },
+      ],
+    },
   ];
   const pulse = (Date.now() / 70) % 1000;
   const flicker = 0.72 + Math.sin(pulse) * 0.16 + Math.sin(pulse * 1.7) * 0.1;
@@ -25,7 +35,14 @@ export function Player({
   return (
     <View style={style} pointerEvents="none">
       {shielded ? <View style={styles.shieldRing} /> : null}
-      <View style={styles.flameWrap}>
+      <View
+        style={[
+          styles.flameWrap,
+          {
+            transform: [{ translateX: tilt * -0.35 }],
+          },
+        ]}
+      >
         <View
           style={[
             styles.flameOuter,

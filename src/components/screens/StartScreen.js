@@ -119,41 +119,43 @@ export function StartScreen({
           })}
         </View>
 
-        <View style={[styles.statPanel, { borderColor: selected.body + "99" }]}>
-          <Text style={[styles.statTitle, { color: selected.body }]}>
-            {selected.name}
-          </Text>
-          {STATS.map((stat) => (
-            <StatRow
-              key={stat.key}
-              label={stat.label}
-              value={selected[stat.key]}
-              color={selected.body}
-            />
-          ))}
-        </View>
+        <View style={styles.infoRow}>
+          <View style={[styles.statPanel, { borderColor: selected.body + "99" }]}>
+            <Text style={[styles.statTitle, { color: selected.body }]}>
+              {selected.name}
+            </Text>
+            {STATS.map((stat) => (
+              <StatRow
+                key={stat.key}
+                label={stat.label}
+                value={selected[stat.key]}
+                color={selected.body}
+              />
+            ))}
+          </View>
 
-        <View style={styles.tipsPanel}>
-          <Text style={styles.tipsTitle}>Tuşlar</Text>
-          {(web
-            ? [
-                { k: "Fare", v: "Gemiyi hareket ettir" },
-                { k: "Q", v: "DONDUR — zamanı yavaşlatır" },
-                { k: "E", v: "PATLAT — EMP patlatır" },
-                { k: "ESC", v: "Duraklat / devam" },
-              ]
-            : [
-                { k: "Sürükle", v: "Gemiyi götür" },
-                { k: "PATLAT", v: "Sağ alt — EMP" },
-                { k: "DONDUR", v: "Sol alt — zamanı yavaşlatır" },
-                { k: "Geri", v: "Duraklat / devam" },
-              ]
-          ).map((row) => (
-            <View key={row.k} style={styles.tipRow}>
-              <Text style={styles.tipKey}>{row.k}</Text>
-              <Text style={styles.tipVal}>{row.v}</Text>
-            </View>
-          ))}
+          <View style={styles.tipsPanel}>
+            <Text style={styles.tipsTitle}>Nasıl oynanır</Text>
+            {(web
+              ? [
+                  { k: "Fare", v: "Gemiyi hareket ettir" },
+                  { k: "Q", v: "DONDUR — zamanı yavaşlatır" },
+                  { k: "E", v: "PATLAT — EMP patlatır" },
+                  { k: "ESC", v: "Duraklat / devam" },
+                ]
+              : [
+                  { k: "Sürükle", v: "Gemiyi götür" },
+                  { k: "PATLAT", v: "Sağ alt — EMP" },
+                  { k: "DONDUR", v: "Sol alt — zamanı yavaşlatır" },
+                  { k: "Geri", v: "Duraklat / devam" },
+                ]
+            ).map((row) => (
+              <View key={row.k} style={styles.tipRow}>
+                <Text style={styles.tipKey}>{row.k}</Text>
+                <Text style={styles.tipVal}>{row.v}</Text>
+              </View>
+            ))}
+          </View>
         </View>
 
         <Pressable
@@ -257,12 +259,20 @@ const styles = StyleSheet.create({
   shipNameOn: {
     color: "#f8fafc",
   },
-  statPanel: {
+  infoRow: {
     width: "100%",
-    maxWidth: 320,
-    marginBottom: 18,
+    maxWidth: 560,
+    flexDirection: "row",
+    alignItems: "stretch",
+    gap: 10,
+    marginBottom: 16,
+  },
+  statPanel: {
+    flex: 1,
+    minWidth: 0,
+    marginBottom: 0,
     paddingVertical: 12,
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     borderRadius: 14,
     borderWidth: 1,
     backgroundColor: "rgba(2, 6, 23, 0.72)",
@@ -280,15 +290,15 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   statLabel: {
-    width: 58,
+    width: 52,
     color: "#94a3b8",
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "700",
   },
   statTrack: {
     flex: 1,
     flexDirection: "row",
-    gap: 4,
+    gap: 3,
   },
   statPip: {
     flex: 1,
@@ -305,11 +315,11 @@ const styles = StyleSheet.create({
     textAlign: "right",
   },
   tipsPanel: {
-    width: "100%",
-    maxWidth: 320,
-    marginBottom: 16,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
+    flex: 1,
+    minWidth: 0,
+    marginBottom: 0,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: "rgba(125, 211, 252, 0.28)",
@@ -324,12 +334,12 @@ const styles = StyleSheet.create({
   },
   tipRow: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    marginBottom: 4,
+    alignItems: "flex-start",
+    gap: 8,
+    marginBottom: 5,
   },
   tipKey: {
-    minWidth: 58,
+    minWidth: 48,
     color: "#22d3ee",
     fontSize: 11,
     fontWeight: "800",
@@ -337,7 +347,8 @@ const styles = StyleSheet.create({
   tipVal: {
     flex: 1,
     color: "#cbd5e1",
-    fontSize: 12,
+    fontSize: 11,
+    lineHeight: 15,
   },
   button: {
     paddingVertical: 14,
