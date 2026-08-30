@@ -14,12 +14,7 @@ const SFX = {
 };
 
 const MUSIC_TRACKS = [
-  require("../../assets/sfx/music-1.mp3"),
-  require("../../assets/sfx/music-2.mp3"),
-  require("../../assets/sfx/music-3.mp3"),
-  require("../../assets/sfx/music-4.mp3"),
-  require("../../assets/sfx/music-5.mp3"),
-  require("../../assets/sfx/music-6.mp3"),
+  require("../../assets/sfx/race-to-space.mp3"),
 ];
 
 const MUSIC_VOLUME = 0.34;
