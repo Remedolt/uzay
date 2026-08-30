@@ -8,7 +8,11 @@ export function PauseScreen({ onResume, onQuit }) {
     <View style={styles.overlay}>
       <View style={styles.card}>
         <Text style={styles.title}>Duraklatıldı</Text>
-        <Text style={styles.hint}>ESC veya buton ile devam et</Text>
+        <Text style={styles.hint}>
+          {Platform.OS === "web"
+            ? "ESC veya buton ile devam et"
+            : "Geri tuşu veya Devam Et ile sürdür"}
+        </Text>
         <Pressable style={styles.button} onPress={onResume}>
           <Text style={styles.buttonText}>Devam Et</Text>
         </Pressable>

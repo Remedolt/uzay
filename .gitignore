@@ -3,6 +3,7 @@ node_modules/
 dist/
 npm-debug.*
 *.jks
+*.keystore
 *.p8
 *.p12
 *.key
@@ -10,3 +11,6 @@ npm-debug.*
 *.orig.*
 web-build/
 .DS_Store
+credentials.json
+credentials/
+android/

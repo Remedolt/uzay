@@ -1,5 +1,5 @@
 import { Image, Platform, StyleSheet, View } from "react-native";
-import { BOSS_SHIP_IMAGES, ENEMY_SHIP_IMAGES } from "../../assets";
+import { BOSS_SHIP_IMAGES, ENEMY_SHIP_IMAGES, KAMIKAZE_SHIP_IMAGE } from "../../assets";
 
 function RaiderShip({
   x,
@@ -55,13 +55,39 @@ export function EnemyShip({
   variant = 0,
   isBoss = false,
   isRaider = false,
+  isKamikaze = false,
   vx = 0,
+  vy = 0,
   hp,
   maxHp,
   shieldHp = 0,
   weapon,
   usesPlasma = false,
+  angle,
 }) {
+  if (isKamikaze) {
+    const deg =
+      typeof angle === "number"
+        ? (angle * 180) / Math.PI
+        : Math.atan2(vx || 0, vy || 1) * (180 / Math.PI);
+    return (
+      <View
+        style={[styles.wrap, { left: x, top: y, width, height }]}
+        pointerEvents="none"
+      >
+        <Image
+          source={KAMIKAZE_SHIP_IMAGE}
+          defaultSource={KAMIKAZE_SHIP_IMAGE}
+          style={[
+            styles.image,
+            { width, height, transform: [{ rotate: `${deg}deg` }] },
+          ]}
+          resizeMode="contain"
+        />
+      </View>
+    );
+  }
+
   if (isRaider) {
     return (
       <RaiderShip

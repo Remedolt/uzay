@@ -45,4 +45,4 @@ export const SPACE_CITY_NEON = require("../assets/space-city-neon.jpg");
 export const SPACE_CITY_STEEL = require("../assets/space-city-steel.jpg");
 export const WEB_INTRO_IMAGE = require("../assets/web-intro.png");
 /** Yazısız intro — yalnızca native (çift başlık olmasın diye). */
-export const MOBILE_INTRO_IMAGE = require("../assets/mobile-intro.jpg");
+export const MOBILE_INTRO_IMAGE = require("../assets/mobile-intro-v2.jpg");

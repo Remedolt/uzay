@@ -26,9 +26,11 @@ export function WebIntro({ onContinue, onUnlockAudio }) {
   const titleGlow = useRef(new Animated.Value(0)).current;
 
   const compact = !WEB || width < 480;
-  const titleSize = Math.round(
+  const baseTitleSize = Math.round(
     Math.min(compact ? 30 : 40, Math.max(24, width * (compact ? 0.078 : 0.055)))
   );
+  const titleSize = WEB ? baseTitleSize : Math.round(baseTitleSize * 1.05 * 1.03 * 1.05);
+  const titleOffsetY = !WEB ? height * 0.113 : 0;
   const titleTracking = compact ? 4 : 8;
   const btnPadV = compact ? 14 : 16;
   const btnPadH = compact ? 28 : 36;
@@ -113,22 +115,26 @@ export function WebIntro({ onContinue, onUnlockAudio }) {
     <View style={styles.wrap}>
       <Image
         source={INTRO_IMAGE}
-        {...(Platform.OS === "android" ? { defaultSource: INTRO_IMAGE } : null)}
         style={styles.art}
         resizeMode="cover"
+        accessibilityIgnoresInvertColors
       />
-      <View style={[styles.topScrim, compact && styles.topScrimCompact]} pointerEvents="none" />
-      {!WEB ? <View style={styles.topScrimSoft} pointerEvents="none" /> : null}
-      <View
-        style={[
-          styles.titlePlate,
-          compact && styles.titlePlateCompact,
-          { top: Math.max(insets.top + 8, height * 0.035) },
-        ]}
-        pointerEvents="none"
-      />
-      <View style={[styles.bottomScrim, compact && styles.bottomScrimCompact]} pointerEvents="none" />
-      {!WEB ? <View style={styles.bottomScrimSoft} pointerEvents="none" /> : null}
+      {WEB ? (
+        <View style={[styles.topScrim, compact && styles.topScrimCompact]} pointerEvents="none" />
+      ) : null}
+      {WEB ? (
+        <View
+          style={[
+            styles.titlePlate,
+            compact && styles.titlePlateCompact,
+            { top: Math.max(insets.top + 8, height * 0.035) },
+          ]}
+          pointerEvents="none"
+        />
+      ) : null}
+      {WEB ? (
+        <View style={[styles.bottomScrim, compact && styles.bottomScrimCompact]} pointerEvents="none" />
+      ) : null}
 
       <View
         style={[styles.copy, { paddingTop: topPad, paddingBottom: bottomPad }]}
@@ -137,26 +143,45 @@ export function WebIntro({ onContinue, onUnlockAudio }) {
         <Animated.View
           style={[
             styles.titleBlock,
+            !WEB ? { marginTop: titleOffsetY } : null,
             {
               opacity: titleGlow.interpolate({
                 inputRange: [0, 1],
-                outputRange: [0.9, 1],
+                outputRange: [0.92, 1],
               }),
             },
           ]}
         >
-          <Text
-            style={[
-              styles.title,
-              {
-                fontSize: titleSize,
-                letterSpacing: titleTracking,
-                lineHeight: titleSize + 6,
-              },
-            ]}
-          >
-            UZAY AVCISI
-          </Text>
+          <View style={styles.titleStack}>
+            {!WEB ? (
+              <Text
+                style={[
+                  styles.title,
+                  styles.titleGlow,
+                  {
+                    fontSize: titleSize,
+                    letterSpacing: titleTracking,
+                    lineHeight: titleSize + 6,
+                  },
+                ]}
+              >
+                UZAY AVCISI
+              </Text>
+            ) : null}
+            <Text
+              style={[
+                styles.title,
+                !WEB ? styles.titleMobile : null,
+                {
+                  fontSize: titleSize,
+                  letterSpacing: titleTracking,
+                  lineHeight: titleSize + 6,
+                },
+              ]}
+            >
+              UZAY AVCISI
+            </Text>
+          </View>
         </Animated.View>
 
         <Pressable
@@ -221,14 +246,6 @@ const styles = StyleSheet.create({
   topScrimCompact: {
     height: "26%",
   },
-  topScrimSoft: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    top: "18%",
-    height: "14%",
-    backgroundColor: "rgba(2, 6, 23, 0.35)",
-  },
   titlePlate: {
     position: "absolute",
     left: "8%",
@@ -266,14 +283,6 @@ const styles = StyleSheet.create({
   bottomScrimCompact: {
     height: "30%",
   },
-  bottomScrimSoft: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: "22%",
-    height: "12%",
-    backgroundColor: "rgba(2, 6, 23, 0.28)",
-  },
   copy: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: "space-between",
@@ -283,6 +292,10 @@ const styles = StyleSheet.create({
   titleBlock: {
     alignItems: "center",
     zIndex: 2,
+  },
+  titleStack: {
+    alignItems: "center",
+    justifyContent: "center",
   },
   title: {
     fontFamily: TITLE_FONT,
@@ -299,12 +312,21 @@ const styles = StyleSheet.create({
           filter:
             "drop-shadow(0 0 16px rgba(34, 211, 238, 0.65)) drop-shadow(0 1px 0 rgba(255,255,255,0.35)) drop-shadow(0 3px 0 rgba(0,0,0,0.95)) drop-shadow(0 5px 14px rgba(0,0,0,0.75))",
         }
-      : {
-          color: "#7dd3fc",
-          textShadowColor: "rgba(0,0,0,0.95)",
-          textShadowOffset: { width: 0, height: 2 },
-          textShadowRadius: 6,
-        }),
+      : null),
+  },
+  titleGlow: {
+    position: "absolute",
+    color: "#1eb9d0",
+    opacity: 0.7,
+    textShadowColor: "rgba(30, 185, 208, 0.95)",
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 18,
+  },
+  titleMobile: {
+    color: "#d2ddde",
+    textShadowColor: "rgba(0, 0, 0, 0.95)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 14,
   },
   btnShadowNative: {
     position: "absolute",
