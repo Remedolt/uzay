@@ -259,6 +259,7 @@ export function useSfx() {
     if (el.paused) {
       await playHtml(el, { restart: false });
     }
+  }, []);
 
   const applyWanted = useCallback(async () => {
     if (WEB) {
