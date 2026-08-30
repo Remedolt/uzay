@@ -11,13 +11,19 @@ import {
 import { Player } from "../entities/Player";
 import { SpaceBackground } from "../fx/SpaceBackground";
 import { Scoreboard } from "../hud/Scoreboard";
-import { HowToPlay } from "./HowToPlay";
 
 const STATS = [
   { key: "speed", label: "Hız" },
   { key: "shield", label: "Kalkan" },
   { key: "health", label: "Sağlık" },
   { key: "fire", label: "Ateş" },
+];
+
+const WEB_TIP_ROWS = [
+  { k: "Fare", v: "Gemiyi hareket ettir" },
+  { k: "Q", v: "DONDUR — zamanı yavaşlatır" },
+  { k: "E", v: "PATLAT — EMP patlatır" },
+  { k: "ESC", v: "Duraklat / devam" },
 ];
 
 function StatRow({ label, value, color }) {
@@ -50,7 +56,6 @@ export function StartScreen({
   onUnlockAudio,
 }) {
   const selected = getShip(shipId);
-  const [help, setHelp] = useState(false);
   const [fullscreen, setFullscreen] = useState(prefersFullscreenByDefault);
   const web = Platform.OS === "web";
 
@@ -119,8 +124,40 @@ export function StartScreen({
           })}
         </View>
 
-        <View style={styles.infoRow}>
-          <View style={[styles.statPanel, { borderColor: selected.body + "99" }]}>
+        {web ? (
+          <View style={styles.infoRow}>
+            <View style={[styles.statPanel, { borderColor: selected.body + "99" }]}>
+              <Text style={[styles.statTitle, { color: selected.body }]}>
+                {selected.name}
+              </Text>
+              {STATS.map((stat) => (
+                <StatRow
+                  key={stat.key}
+                  label={stat.label}
+                  value={selected[stat.key]}
+                  color={selected.body}
+                />
+              ))}
+            </View>
+
+            <View style={styles.tipsPanel}>
+              <Text style={styles.tipsTitle}>Nasıl oynanır</Text>
+              {WEB_TIP_ROWS.map((row) => (
+                <View key={row.k} style={styles.tipRow}>
+                  <Text style={styles.tipKey}>{row.k}</Text>
+                  <Text style={styles.tipVal}>{row.v}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        ) : (
+          <View
+            style={[
+              styles.statPanel,
+              styles.statPanelMobile,
+              { borderColor: selected.body + "99" },
+            ]}
+          >
             <Text style={[styles.statTitle, { color: selected.body }]}>
               {selected.name}
             </Text>
@@ -133,30 +170,7 @@ export function StartScreen({
               />
             ))}
           </View>
-
-          <View style={styles.tipsPanel}>
-            <Text style={styles.tipsTitle}>Nasıl oynanır</Text>
-            {(web
-              ? [
-                  { k: "Fare", v: "Gemiyi hareket ettir" },
-                  { k: "Q", v: "DONDUR — zamanı yavaşlatır" },
-                  { k: "E", v: "PATLAT — EMP patlatır" },
-                  { k: "ESC", v: "Duraklat / devam" },
-                ]
-              : [
-                  { k: "Sürükle", v: "Gemiyi götür" },
-                  { k: "PATLAT", v: "Sağ alt — EMP" },
-                  { k: "DONDUR", v: "Sol alt — zamanı yavaşlatır" },
-                  { k: "Geri", v: "Duraklat / devam" },
-                ]
-            ).map((row) => (
-              <View key={row.k} style={styles.tipRow}>
-                <Text style={styles.tipKey}>{row.k}</Text>
-                <Text style={styles.tipVal}>{row.v}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
+        )}
 
         <Pressable
           style={[styles.button, { backgroundColor: selected.body }]}
@@ -181,25 +195,11 @@ export function StartScreen({
             </View>
           </Pressable>
         ) : null}
-        {web ? null : (
-          <Pressable
-            style={styles.helpBtn}
-            onPress={() => {
-              onUnlockAudio?.();
-              setHelp(true);
-            }}
-          >
-            <Text style={styles.helpText}>Nasıl oynanır</Text>
-          </Pressable>
-        )}
 
         <View style={styles.boardWrap}>
           <Scoreboard entries={leaderboard} />
         </View>
       </ScrollView>
-      {web ? null : (
-        <HowToPlay visible={help} onClose={() => setHelp(false)} />
-      )}
     </View>
   );
 }
@@ -276,6 +276,12 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     backgroundColor: "rgba(2, 6, 23, 0.72)",
+  },
+  statPanelMobile: {
+    width: "100%",
+    maxWidth: 320,
+    flex: 0,
+    marginBottom: 16,
   },
   statTitle: {
     fontSize: 15,
@@ -408,18 +414,5 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginTop: 2,
     lineHeight: 15,
-  },
-  helpBtn: {
-    marginTop: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "rgba(148, 163, 184, 0.45)",
-  },
-  helpText: {
-    color: "#e2e8f0",
-    fontSize: 14,
-    fontWeight: "700",
   },
 });
