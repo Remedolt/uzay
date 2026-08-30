@@ -2,7 +2,7 @@ name: Deploy GitHub Pages
 
 on:
   push:
-    branches: [main, site-root]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -12,13 +12,25 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - name: Force Pages source to GitHub Actions
+        run: |
+          code=$(curl -sS -o /tmp/pages-put.json -w "%{http_code}" -X PUT \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${{ github.repository }}/pages" \
+            -d '{"build_type":"workflow"}') || true
+          echo "pages PUT status=$code"
+          cat /tmp/pages-put.json || true
+          # 204 = ok, 409/422 may already be workflow — do not fail the build
       - uses: actions/setup-node@v4
         with:
           node-version: 20
